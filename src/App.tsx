@@ -5,13 +5,13 @@ import { StatsSidebar } from './components/Sidebar/StatsSidebar';
 import { MemberDetailSidebar } from './components/Sidebar/MemberDetailSidebar';
 import { FamilyTreeView } from './components/FamilyTree/FamilyTreeView';
 import { BottomNavigation } from './components/BottomNavigation/BottomNavigation';
-import { MiniMap } from './components/FloatingElements/MiniMap';
-import { Legend } from './components/FloatingElements/Legend';
+import { CanvasControls } from './components/FamilyTree/CanvasControls';
+
 import { useFamilyStore } from './store/familyStore';
 import { mockFamilyData } from './data/mockData';
 
 function App() {
-  const { setMembers, selectedMember } = useFamilyStore();
+  const { setMembers, selectedMember, viewMode } = useFamilyStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -50,9 +50,20 @@ function App() {
       {/* Bottom Navigation */}
       <BottomNavigation />
       
-      {/* Floating Elements */}
-      <MiniMap />
-      <Legend />
+      {/* Canvas Controls - Fixed position on right side, above bottom navigation */}
+      {/* Only show when in tree view mode */}
+      {viewMode.type === 'tree' && (
+        <div 
+          className="fixed right-4 pointer-events-auto"
+          style={{
+            bottom: '80px', // Above bottom navigation (assuming 64px height + 16px margin)
+            zIndex: 1000,
+          }}
+        >
+          <CanvasControls />
+        </div>
+      )}
+      
     </div>
   );
 }
