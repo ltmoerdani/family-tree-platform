@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { FamilyMember } from '@/types/family';
 import { useFamilyStore } from '@/store/familyStore';
-import { MapPin, Briefcase, Calendar, Phone, Mail, MoreVertical } from 'lucide-react';
+import { MapPin, Briefcase, Calendar, Phone, Mail, MoreVertical, Edit, Plus } from 'lucide-react';
+import { AddMemberModal } from '@/components/Forms/AddMemberModal';
 
 interface GridMemberCardProps {
   member: FamilyMember;
@@ -17,6 +18,8 @@ export const GridMemberCard: React.FC<GridMemberCardProps> = ({
   const { setSelectedMember } = useFamilyStore();
   const [showContextMenu, setShowContextMenu] = useState(false);
   const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showAddChildModal, setShowAddChildModal] = useState(false);
 
   const handleClick = () => {
     setSelectedMember(member);
@@ -26,6 +29,16 @@ export const GridMemberCard: React.FC<GridMemberCardProps> = ({
     e.preventDefault();
     setContextMenuPosition({ x: e.clientX, y: e.clientY });
     setShowContextMenu(true);
+  };
+
+  const handleEdit = () => {
+    setShowEditModal(true);
+    setShowContextMenu(false);
+  };
+
+  const handleAddChild = () => {
+    setShowAddChildModal(true);
+    setShowContextMenu(false);
   };
 
   const calculateAge = () => {
@@ -186,8 +199,20 @@ export const GridMemberCard: React.FC<GridMemberCardProps> = ({
               top: contextMenuPosition.y,
             }}
           >
-            <button className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors">
-              Edit Profil
+            <button 
+              onClick={handleEdit}
+              className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors flex items-center space-x-2"
+            >
+              <Edit className="w-4 h-4" />
+              <span>Edit Profil</span>
+            </button>
+
+            <button 
+              onClick={handleAddChild}
+              className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors flex items-center space-x-2"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Tambah Anak</span>
             </button>
             
             {member.phone && (
@@ -212,6 +237,19 @@ export const GridMemberCard: React.FC<GridMemberCardProps> = ({
           </div>
         </>
       )}
+
+      {/* Modals */}
+      <AddMemberModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        editingMember={member}
+      />
+
+      <AddMemberModal
+        isOpen={showAddChildModal}
+        onClose={() => setShowAddChildModal(false)}
+        preselectedParent={member}
+      />
     </>
   );
 };

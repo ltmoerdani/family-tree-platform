@@ -56,7 +56,7 @@ export const Toolbar: React.FC = () => {
                     : 'bg-white text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                <List className="w-4 h-4" />
+                Daftar
               </button>
             </div>
           </div>
