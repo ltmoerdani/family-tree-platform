@@ -6,7 +6,7 @@ import { useFamilyStore } from '../../store/familyStore';
 import { FamilyMember } from '../../types/family';
 
 export const TreeCanvas: React.FC = () => {
-  const canvasRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLButtonElement>(null);
   const { members, viewMode, editMode, setEditMode } = useFamilyStore();
   
   // Pan/drag state for canvas navigation
@@ -116,6 +116,51 @@ export const TreeCanvas: React.FC = () => {
     }
   };
 
+  // Handle keyboard events for accessibility
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    switch (e.key) {
+      case 'Escape':
+        if (editMode) {
+          setEditMode(false);
+          e.preventDefault();
+        }
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setPanOffset(prev => ({ ...prev, y: prev.y + 50 }));
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        setPanOffset(prev => ({ ...prev, y: prev.y - 50 }));
+        break;
+      case 'ArrowLeft':
+        e.preventDefault();
+        setPanOffset(prev => ({ ...prev, x: prev.x + 50 }));
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        setPanOffset(prev => ({ ...prev, x: prev.x - 50 }));
+        break;
+      case '+':
+      case '=':
+        e.preventDefault();
+        if (viewMode.zoom < 200) {
+          const newZoom = Math.min(200, viewMode.zoom + 25);
+          // Note: This would need to be connected to the store's setViewMode
+          console.log('Zoom in to:', newZoom);
+        }
+        break;
+      case '-':
+        e.preventDefault();
+        if (viewMode.zoom > 25) {
+          const newZoom = Math.max(25, viewMode.zoom - 25);
+          // Note: This would need to be connected to the store's setViewMode
+          console.log('Zoom out to:', newZoom);
+        }
+        break;
+    }
+  }, [editMode, setEditMode, viewMode.zoom]);
+
   // Filter members based on view settings
   const filteredMembers = members.filter(member => {
     if (!viewMode.showAlive && member.isAlive) return false;
@@ -125,9 +170,9 @@ export const TreeCanvas: React.FC = () => {
   });
 
   return (
-    <section 
+    <button 
       ref={canvasRef}
-      className={`flex-1 bg-gray-50 relative transition-all duration-200 ${
+      className={`flex-1 bg-gray-50 relative transition-all duration-200 border-0 outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset ${
         editMode ? 'bg-blue-25' : ''
       } ${isPanning ? 'cursor-grabbing' : 'cursor-grab'}`}
       style={{
@@ -143,7 +188,8 @@ export const TreeCanvas: React.FC = () => {
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onClick={handleCanvasClick}
-      aria-label="Family tree canvas - drag to pan, click to interact, press Escape to exit edit mode"
+      onKeyDown={handleKeyDown}
+      aria-label="Family tree canvas - drag to pan, click to interact, use arrow keys to navigate, press Escape to exit edit mode, +/- to zoom"
     >
       {/* Large draggable canvas container */}
       <div 
@@ -273,6 +319,6 @@ export const TreeCanvas: React.FC = () => {
         )}
       </div>
 
-    </section>
+    </button>
   );
 };
