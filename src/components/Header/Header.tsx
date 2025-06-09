@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Bell, Menu } from 'lucide-react';
+import { Search, Bell, Menu, TreePine } from 'lucide-react';
 import { useFamilyStore } from '../../store/familyStore';
 import { UserMenu } from './UserMenu';
 
@@ -22,13 +22,14 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle, familyName }) => {
         </button>
         
         <div className="flex items-center space-x-2">
-          <h1 className="text-xl font-bold text-gray-900">
-            Pohon Keluarga Besar {familyName}
+          <TreePine className="w-8 h-8 text-green-600" />
+          <h1 className="text-2xl font-bold text-gray-900">
+            FamilyTree
           </h1>
         </div>
         
         <nav className="hidden md:flex items-center space-x-2 text-sm text-gray-500">
-          <span>Home</span>
+          <span>Dashboard</span>
           <span>/</span>
           <span>Family Tree</span>
           <span>/</span>
