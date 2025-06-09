@@ -1,3 +1,33 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Global scaling to 80% for better spacing and readability */
+@layer base {
+  html {
+    font-size: 14px; /* Reduced from default 16px to achieve 80% scaling */
+  }
+  
+  body {
+    font-size: 1rem; /* This will now be 14px instead of 16px */
+    line-height: 1.5;
+  }
+  
+  /* Ensure consistent scaling across all elements */
+  * {
+    font-size: inherit;
+  }
+  
+  /* Scale down buttons, inputs, and form elements proportionally */
+  button, input, select, textarea, .btn {
+    font-size: inherit;
+  }
+  
+  /* Ensure headings scale proportionally */
+  h1 { font-size: 1.5rem; }    /* ~21px instead of 24px */
+  h2 { font-size: 1.25rem; }   /* ~17.5px instead of 20px */
+  h3 { font-size: 1.125rem; }  /* ~15.75px instead of 18px */
+  h4 { font-size: 1rem; }      /* ~14px instead of 16px */
+  h5 { font-size: 0.875rem; }  /* ~12.25px instead of 14px */
+  h6 { font-size: 0.75rem; }   /* ~10.5px instead of 12px */
+}

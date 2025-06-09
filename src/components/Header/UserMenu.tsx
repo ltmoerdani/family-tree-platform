@@ -41,14 +41,12 @@ export const UserMenu: React.FC = () => {
 
       {isOpen && (
         <>
-          <div
-            className="fixed inset-0 z-10"
-            role="button"
-            tabIndex={0}
+          <button
+            className="fixed inset-0 z-10 bg-transparent border-none cursor-default"
             aria-label="Tutup menu pengguna"
             onClick={() => setIsOpen(false)}
             onKeyDown={e => {
-              if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+              if (e.key === 'Escape') {
                 setIsOpen(false);
               }
             }}
