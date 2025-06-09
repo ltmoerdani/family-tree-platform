@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useRef, useState, useCallback, useEffect } from 'react';
+import { flushSync } from 'react-dom';
 import { EditableMemberCard } from './EditableMemberCard';
 import { MemberCard } from './MemberCard';
 import { useFamilyStore } from '../../store/familyStore';
@@ -7,13 +8,19 @@ import { FamilyMember } from '../../types/family';
 
 export const TreeCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLButtonElement>(null);
-  const { members, viewMode, editMode, setEditMode } = useFamilyStore();
+  const { members, viewMode, editMode, setEditMode, setViewMode } = useFamilyStore();
   
   // Pan/drag state for canvas navigation
   const [panOffset, setPanOffset] = useState({ x: -1500, y: -300 }); // Start centered on expanded canvas
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [initialPanOffset, setInitialPanOffset] = useState({ x: 0, y: 0 });
+  
+  // Touch/pinch zoom state
+  const [lastTouchDistance, setLastTouchDistance] = useState<number | null>(null);
+  const [isZooming, setIsZooming] = useState(false);
+  const [lastWheelTime, setLastWheelTime] = useState(0);
+  const [accumulatedDelta, setAccumulatedDelta] = useState(0);
   
   // Calculate positions for family members with expanded canvas
   const calculatePositions = (): Record<string, { x: number; y: number }> => {
@@ -56,6 +63,86 @@ export const TreeCanvas: React.FC = () => {
 
   const positions = calculatePositions();
 
+  // Utility function to calculate distance between two touch points
+  const getTouchDistance = (touches: React.TouchList): number => {
+    if (touches.length < 2) return 0;
+    const touch1 = touches[0];
+    const touch2 = touches[1];
+    const dx = touch1.clientX - touch2.clientX;
+    const dy = touch1.clientY - touch2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  // Zoom function with boundaries - enhanced smoothness
+  const handleZoom = useCallback((delta: number, centerX?: number, centerY?: number, isWheel: boolean = false) => {
+    const currentZoom = viewMode.zoom;
+    
+    // Enhanced zoom speeds for ultra-smooth experience
+    let zoomSpeed;
+    if (isWheel) {
+      // More responsive wheel zoom with dynamic scaling
+      const zoomFactor = currentZoom / 100;
+      zoomSpeed = 0.025 * (1 + zoomFactor * 0.5); // Adaptive speed based on current zoom
+    } else {
+      // Keyboard and touch zoom
+      zoomSpeed = 0.12;
+    }
+    
+    const minZoom = 25;
+    const maxZoom = 200;
+    
+    // Calculate zoom increment with smoother scaling
+    const baseIncrement = currentZoom * zoomSpeed;
+    const zoomIncrement = Math.max(0.5, baseIncrement); // Allow smaller increments for smoothness
+    let newZoom = currentZoom + (delta * zoomIncrement);
+    
+    // More precise rounding for finer control
+    newZoom = Math.round(newZoom * 2) / 2; // Round to nearest 0.5
+    newZoom = Math.max(minZoom, Math.min(maxZoom, newZoom));
+    
+    // Update with smaller threshold for more responsive zoom
+    if (Math.abs(newZoom - currentZoom) >= 0.5) {
+      const oldZoomScale = currentZoom / 100.0;
+      const newZoomScale = newZoom / 100.0;
+
+      // Calculate new pan offset BEFORE updating zoom to avoid flickering
+      let newPanOffset = panOffset;
+      
+      if (canvasRef.current) {
+        const rect = canvasRef.current.getBoundingClientRect();
+        
+        let targetXInViewport: number;
+        let targetYInViewport: number;
+
+        if (centerX !== undefined && centerY !== undefined) {
+          // Zoom towards mouse/touch position
+          targetXInViewport = centerX - rect.left;
+          targetYInViewport = centerY - rect.top;
+        } else {
+          // Keyboard zoom: zoom towards the center of the viewport
+          targetXInViewport = rect.width / 2;
+          targetYInViewport = rect.height / 2;
+        }
+        
+        // Calculate new pan offset using current values to prevent flickering
+        if (oldZoomScale > 0 && newZoomScale > 0) {
+          const zoomRatio = newZoomScale / oldZoomScale;
+          
+          newPanOffset = {
+            x: targetXInViewport - (targetXInViewport - panOffset.x) * zoomRatio,
+            y: targetYInViewport - (targetYInViewport - panOffset.y) * zoomRatio
+          };
+        }
+      }
+
+      // Use flushSync for synchronous updates
+      flushSync(() => {
+        setViewMode({ zoom: newZoom });
+        setPanOffset(newPanOffset);
+      });
+    }
+  }, [viewMode.zoom, setViewMode, panOffset]);
+
   // Mouse event handlers for panning
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button === 0) { // Left mouse button only
@@ -81,6 +168,124 @@ export const TreeCanvas: React.FC = () => {
   const handleMouseUp = useCallback(() => {
     setIsPanning(false);
   }, []);
+
+  // Enhanced helper function to detect pinch gesture
+  const isPinchGesture = useCallback((e: React.WheelEvent): boolean => {
+    // More precise pinch detection
+    const hasCtrlKey = e.ctrlKey;
+    const isVerticalOnly = e.deltaY !== 0 && e.deltaX === 0;
+    const isMixedDelta = e.deltaY !== 0 && e.deltaX !== 0;
+    const isSmallMagnitude = Math.abs(e.deltaY) < 120; // Increased threshold for better detection
+    
+    return hasCtrlKey || 
+           (isVerticalOnly && isSmallMagnitude) ||
+           (isMixedDelta && isSmallMagnitude) ||
+           (Math.abs(e.deltaY) < 80 && Math.abs(e.deltaX) < 80);
+  }, []);
+
+  // Wheel event handler for trackpad zoom
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    
+    const now = Date.now();
+    if (now - lastWheelTime < 16) return; // Smoother 60fps throttle
+    setLastWheelTime(now);
+    
+    if (isPinchGesture(e)) {
+      // Zoom gesture with more granular control
+      let delta = e.deltaY > 0 ? -1 : 1;
+      const magnitude = Math.abs(e.deltaY);
+      
+      // More refined sensitivity based on gesture magnitude
+      if (magnitude < 2) delta *= 0.2;
+      else if (magnitude < 5) delta *= 0.4;
+      else if (magnitude < 10) delta *= 0.7;
+      else delta *= 1.0;
+      
+      const newAccumulated = accumulatedDelta + delta;
+      setAccumulatedDelta(newAccumulated);
+      
+      // Lower threshold for more responsive zoom
+      if (Math.abs(newAccumulated) >= 0.6) {
+        const zoomDirection = newAccumulated > 0 ? 1 : -1;
+        handleZoom(zoomDirection, e.clientX, e.clientY, true);
+        setAccumulatedDelta(0);
+      }
+    } else {
+      // Pan gesture with smoother movement
+      setPanOffset(prev => ({
+        x: prev.x - (e.deltaX * 0.5),
+        y: prev.y - (e.deltaY * 0.5)
+      }));
+    }
+  }, [handleZoom, lastWheelTime, accumulatedDelta, isPinchGesture]);
+
+  // Touch event handlers for mobile pinch-to-zoom
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      // Two finger touch - prepare for zoom
+      setIsZooming(true);
+      setLastTouchDistance(getTouchDistance(e.touches));
+      e.preventDefault();
+    } else if (e.touches.length === 1) {
+      // Single touch - prepare for pan
+      const touch = e.touches[0];
+      setIsPanning(true);
+      setPanStart({ x: touch.clientX, y: touch.clientY });
+      setInitialPanOffset({ ...panOffset });
+    }
+  }, [panOffset]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2 && isZooming && lastTouchDistance !== null) {
+      // Two finger zoom with balanced threshold
+      const currentDistance = getTouchDistance(e.touches);
+      const distanceDelta = currentDistance - lastTouchDistance;
+      
+      if (Math.abs(distanceDelta) > 8) { // Balanced threshold - not too sensitive, not too slow
+        const zoomDelta = distanceDelta > 0 ? 1 : -1;
+        
+        // Get center point between two touches
+        const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        
+        handleZoom(zoomDelta, centerX, centerY);
+        setLastTouchDistance(currentDistance);
+      }
+      e.preventDefault();
+    } else if (e.touches.length === 1 && isPanning && !isZooming) {
+      // Single touch pan
+      const touch = e.touches[0];
+      const deltaX = touch.clientX - panStart.x;
+      const deltaY = touch.clientY - panStart.y;
+      
+      setPanOffset({
+        x: initialPanOffset.x + deltaX,
+        y: initialPanOffset.y + deltaY
+      });
+      e.preventDefault();
+    }
+  }, [isZooming, lastTouchDistance, isPanning, panStart, initialPanOffset, handleZoom]);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 0) {
+      // All touches ended
+      setIsZooming(false);
+      setIsPanning(false);
+      setLastTouchDistance(null);
+    } else if (e.touches.length === 1) {
+      // From two touches to one - end zoom, potentially start pan
+      setIsZooming(false);
+      setLastTouchDistance(null);
+      
+      if (!isPanning) {
+        const touch = e.touches[0];
+        setIsPanning(true);
+        setPanStart({ x: touch.clientX, y: touch.clientY });
+        setInitialPanOffset({ ...panOffset });
+      }
+    }
+  }, [isPanning, panOffset]);
 
   // Global mouse events for panning
   useEffect(() => {
@@ -144,22 +349,14 @@ export const TreeCanvas: React.FC = () => {
       case '+':
       case '=':
         e.preventDefault();
-        if (viewMode.zoom < 200) {
-          const newZoom = Math.min(200, viewMode.zoom + 25);
-          // Note: This would need to be connected to the store's setViewMode
-          console.log('Zoom in to:', newZoom);
-        }
+        handleZoom(1);
         break;
       case '-':
         e.preventDefault();
-        if (viewMode.zoom > 25) {
-          const newZoom = Math.max(25, viewMode.zoom - 25);
-          // Note: This would need to be connected to the store's setViewMode
-          console.log('Zoom out to:', newZoom);
-        }
+        handleZoom(-1);
         break;
     }
-  }, [editMode, setEditMode, viewMode.zoom]);
+  }, [editMode, setEditMode, handleZoom]);
 
   // Filter members based on view settings
   const filteredMembers = members.filter(member => {
@@ -182,14 +379,19 @@ export const TreeCanvas: React.FC = () => {
         `,
         backgroundSize: '20px 20px',
         backgroundPosition: `${panOffset.x % 20}px ${panOffset.y % 20}px`,
-        overflow: 'hidden', // Changed from overflow-hidden class to explicit style
+        overflow: 'hidden',
+        touchAction: 'none', // Prevent default touch behaviors
       }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
+      onWheel={handleWheel}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
       onClick={handleCanvasClick}
       onKeyDown={handleKeyDown}
-      aria-label="Family tree canvas - drag to pan, click to interact, use arrow keys to navigate, press Escape to exit edit mode, +/- to zoom"
+      aria-label="Family tree canvas - drag to pan, scroll or pinch to zoom, click to interact, use arrow keys to navigate, press Escape to exit edit mode, +/- to zoom"
     >
       {/* Large draggable canvas container */}
       <div 
@@ -198,7 +400,9 @@ export const TreeCanvas: React.FC = () => {
           width: '5000px', // Much wider canvas
           height: '4000px', // Much taller canvas
           transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${viewMode.zoom / 100})`,
-          transformOrigin: 'top left',
+          transformOrigin: '0 0', // Keep at top-left for predictable behavior
+          transition: isPanning || isZooming ? 'none' : 'transform 0.1s cubic-bezier(0.25, 0.46, 0.45, 0.94)', // Smooth transition when not actively interacting
+          willChange: 'transform', // Optimize for transform changes
         }}
       >
         {/* Connection Lines SVG */}
@@ -318,7 +522,6 @@ export const TreeCanvas: React.FC = () => {
           </div>
         )}
       </div>
-
     </button>
   );
 };
