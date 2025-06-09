@@ -21,6 +21,47 @@ export const TreeCanvas: React.FC = () => {
   const [isZooming, setIsZooming] = useState(false);
   const [lastWheelTime, setLastWheelTime] = useState(0);
   const [accumulatedDelta, setAccumulatedDelta] = useState(0);
+
+  // Prevent browser zoom and add global CSS to prevent page movement
+  useEffect(() => {
+    // Add meta viewport to prevent zoom
+    const metaViewport = document.querySelector('meta[name="viewport"]');
+    const originalContent = metaViewport?.getAttribute('content') ?? '';
+    
+    if (metaViewport) {
+      metaViewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+    }
+
+    // Add CSS to prevent page zoom and movement
+    const style = document.createElement('style');
+    style.id = 'canvas-zoom-prevention';
+    style.textContent = `
+      html, body {
+        touch-action: manipulation !important;
+        overscroll-behavior: none !important;
+        -webkit-user-select: none !important;
+        -webkit-touch-callout: none !important;
+        -webkit-tap-highlight-color: transparent !important;
+      }
+      
+      /* Prevent zoom on double tap */
+      * {
+        touch-action: manipulation !important;
+      }
+    `;
+    document.head.appendChild(style);
+
+    // Cleanup on unmount
+    return () => {
+      if (metaViewport && originalContent) {
+        metaViewport.setAttribute('content', originalContent);
+      }
+      const existingStyle = document.getElementById('canvas-zoom-prevention');
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+    };
+  }, []);
   
   // Calculate positions for family members with expanded canvas
   const calculatePositions = (): Record<string, { x: number; y: number }> => {
@@ -185,7 +226,9 @@ export const TreeCanvas: React.FC = () => {
 
   // Wheel event handler for trackpad zoom
   const handleWheel = useCallback((e: React.WheelEvent) => {
+    // Aggressively prevent all default behaviors
     e.preventDefault();
+    e.stopPropagation();
     
     const now = Date.now();
     if (now - lastWheelTime < 16) return; // Smoother 60fps throttle
@@ -222,11 +265,14 @@ export const TreeCanvas: React.FC = () => {
 
   // Touch event handlers for mobile pinch-to-zoom
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    // Prevent all default behaviors
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (e.touches.length === 2) {
       // Two finger touch - prepare for zoom
       setIsZooming(true);
       setLastTouchDistance(getTouchDistance(e.touches));
-      e.preventDefault();
     } else if (e.touches.length === 1) {
       // Single touch - prepare for pan
       const touch = e.touches[0];
@@ -237,6 +283,10 @@ export const TreeCanvas: React.FC = () => {
   }, [panOffset]);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    // Prevent all default behaviors
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (e.touches.length === 2 && isZooming && lastTouchDistance !== null) {
       // Two finger zoom with balanced threshold
       const currentDistance = getTouchDistance(e.touches);
@@ -252,7 +302,6 @@ export const TreeCanvas: React.FC = () => {
         handleZoom(zoomDelta, centerX, centerY);
         setLastTouchDistance(currentDistance);
       }
-      e.preventDefault();
     } else if (e.touches.length === 1 && isPanning && !isZooming) {
       // Single touch pan
       const touch = e.touches[0];
@@ -263,11 +312,14 @@ export const TreeCanvas: React.FC = () => {
         x: initialPanOffset.x + deltaX,
         y: initialPanOffset.y + deltaY
       });
-      e.preventDefault();
     }
   }, [isZooming, lastTouchDistance, isPanning, panStart, initialPanOffset, handleZoom]);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    // Prevent all default behaviors
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (e.touches.length === 0) {
       // All touches ended
       setIsZooming(false);
@@ -381,6 +433,10 @@ export const TreeCanvas: React.FC = () => {
         backgroundPosition: `${panOffset.x % 20}px ${panOffset.y % 20}px`,
         overflow: 'hidden',
         touchAction: 'none', // Prevent default touch behaviors
+        userSelect: 'none', // Prevent text selection
+        WebkitUserSelect: 'none', // Safari
+        WebkitTouchCallout: 'none', // Prevent callout on iOS
+        WebkitTapHighlightColor: 'transparent', // Remove tap highlight
       }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
@@ -391,6 +447,8 @@ export const TreeCanvas: React.FC = () => {
       onTouchEnd={handleTouchEnd}
       onClick={handleCanvasClick}
       onKeyDown={handleKeyDown}
+      onContextMenu={(e) => e.preventDefault()} // Prevent right-click menu
+      onDragStart={(e) => e.preventDefault()} // Prevent drag
       aria-label="Family tree canvas - drag to pan, scroll or pinch to zoom, click to interact, use arrow keys to navigate, press Escape to exit edit mode, +/- to zoom"
     >
       {/* Large draggable canvas container */}
