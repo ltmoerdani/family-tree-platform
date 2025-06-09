@@ -1,6 +1,6 @@
 import React from 'react';
-import { FamilyMember } from '@/types/family';
-import { useFamilyStore } from '@/store/familyStore';
+import { FamilyMember } from '../../types/family';
+import { useFamilyStore } from '../../store/familyStore';
 
 interface MemberCardProps {
   member: FamilyMember;
@@ -12,6 +12,13 @@ export const MemberCard: React.FC<MemberCardProps> = ({ member, position }) => {
 
   const handleClick = () => {
     setSelectedMember(member);
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleClick();
+    }
   };
 
   const getBirthYear = () => {
@@ -32,11 +39,36 @@ export const MemberCard: React.FC<MemberCardProps> = ({ member, position }) => {
     return `(${birthYear})`;
   };
 
+  const getBorderColorClass = () => {
+    if (!member.isAlive) return 'border-gray-400';
+    if (isSelected) {
+      return member.gender === 'male' ? 'border-blue-500' : 'border-pink-500';
+    }
+    return member.gender === 'male' ? 'border-blue-200' : 'border-pink-200';
+  };
+
+  const getHoverBorderColorClass = () => {
+    return member.gender === 'male' ? 'hover:border-blue-400' : 'hover:border-pink-400';
+  };
+
+  const getSelectedShadowClass = () => {
+    return isSelected ? 'shadow-lg' : '';
+  };
+
+  const getPhotoBackgroundClass = () => {
+    return member.gender === 'male' ? 'bg-blue-400' : 'bg-pink-400';
+  };
+
+  const getAriaLabel = () => {
+    const professionText = member.profession ? `, ${member.profession}` : '';
+    return `Select family member ${member.name}, born ${getBirthYear()}${professionText}`;
+  };
+
   const isSelected = selectedMember?.id === member.id;
 
   return (
     <div
-      className={`absolute cursor-pointer transition-all duration-200 transform hover:scale-105 hover:z-10 ${
+      className={`absolute transition-all duration-200 transform hover:scale-105 hover:z-10 ${
         isSelected ? 'z-20 scale-105' : ''
       }`}
       style={{
@@ -44,33 +76,33 @@ export const MemberCard: React.FC<MemberCardProps> = ({ member, position }) => {
         top: position.y,
         transform: `translate(-50%, -50%)`,
       }}
-      onClick={handleClick}
     >
-      <div
-        className={`w-40 bg-white rounded-lg shadow-md hover:shadow-lg border-2 ${
-          member.gender === 'male' 
-            ? 'border-blue-200 hover:border-blue-400' 
-            : 'border-pink-200 hover:border-pink-400'
+      <button
+        type="button"
+        className={`w-40 bg-white rounded-lg shadow-md hover:shadow-lg border-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+          getBorderColorClass()
         } ${
-          isSelected 
-            ? member.gender === 'male' 
-              ? 'border-blue-500 shadow-lg' 
-              : 'border-pink-500 shadow-lg'
-            : ''
+          getHoverBorderColorClass()
         } ${
-          !member.isAlive ? 'border-gray-400 bg-gray-50' : ''
+          getSelectedShadowClass()
+        } ${
+          !member.isAlive ? 'bg-gray-50' : ''
         }`}
+        onClick={handleClick}
+        onKeyDown={handleKeyDown}
+        aria-label={getAriaLabel()}
+        aria-pressed={isSelected}
       >
         {/* Status Indicators */}
         <div className="absolute -top-2 -right-2 flex space-x-1">
           {member.maritalStatus === 'married' && (
             <div className="w-4 h-4 bg-yellow-400 rounded-full border-2 border-white flex items-center justify-center">
-              <span className="text-xs">💍</span>
+              <span className="text-xs" aria-hidden="true">💍</span>
             </div>
           )}
           {!member.isAlive && (
             <div className="w-4 h-4 bg-gray-600 rounded-full border-2 border-white flex items-center justify-center">
-              <span className="text-xs text-white">✕</span>
+              <span className="text-xs text-white" aria-hidden="true">✕</span>
             </div>
           )}
         </div>
@@ -87,7 +119,7 @@ export const MemberCard: React.FC<MemberCardProps> = ({ member, position }) => {
             ) : (
               <div 
                 className={`w-full h-full flex items-center justify-center text-white text-2xl font-bold ${
-                  member.gender === 'male' ? 'bg-blue-400' : 'bg-pink-400'
+                  getPhotoBackgroundClass()
                 }`}
               >
                 {member.name.charAt(0)}
@@ -119,7 +151,7 @@ export const MemberCard: React.FC<MemberCardProps> = ({ member, position }) => {
             {member.generation}
           </div>
         </div>
-      </div>
+      </button>
     </div>
   );
 };

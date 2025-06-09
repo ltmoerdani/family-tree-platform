@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { FileText, Briefcase, GraduationCap, MapPin, Phone, Mail, Camera, Upload } from 'lucide-react';
+import { FileText, Briefcase, GraduationCap, MapPin, Phone, Mail, Camera } from 'lucide-react';
 import { FormData } from '../AddMemberModal';
 
 interface DetailInfoStepProps {
@@ -49,8 +49,27 @@ export const DetailInfoStep: React.FC<DetailInfoStepProps> = ({
     e.preventDefault();
     const file = e.dataTransfer.files[0];
     if (file) {
-      const event = { target: { files: [file] } } as any;
-      handleFileSelect(event);
+      // Handle the file directly instead of creating a synthetic event
+      // Validate file
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Ukuran file maksimal 5MB');
+        return;
+      }
+
+      if (!['image/jpeg', 'image/png'].includes(file.type)) {
+        alert('Format file harus JPG atau PNG');
+        return;
+      }
+
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onload = (readerEvent) => {
+        updateFormData({ 
+          photoFile: file, 
+          photoUrl: readerEvent.target?.result as string 
+        });
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -64,20 +83,28 @@ export const DetailInfoStep: React.FC<DetailInfoStepProps> = ({
 
       {/* Photo Upload */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">
+        <label htmlFor="photo-upload" className="block text-sm font-medium text-gray-700 mb-3">
           Foto Profil
         </label>
-        <div
-          className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors cursor-pointer"
+        <button
+          type="button"
+          className="w-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           onDragOver={handleDragOver}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              fileInputRef.current?.click();
+            }
+          }}
+          aria-label="Upload foto profil dengan drag and drop atau klik untuk browse"
         >
           {formData.photoUrl ? (
             <div className="space-y-3">
               <img
                 src={formData.photoUrl}
-                alt="Preview"
+                alt="Preview foto profil"
                 className="w-24 h-24 rounded-full mx-auto object-cover"
               />
               <p className="text-sm text-gray-600">Klik untuk mengganti foto</p>
@@ -95,25 +122,31 @@ export const DetailInfoStep: React.FC<DetailInfoStepProps> = ({
               </div>
             </div>
           )}
-        </div>
+        </button>
         <input
+          id="photo-upload"
           ref={fileInputRef}
           type="file"
           accept="image/jpeg,image/png"
           onChange={handleFileSelect}
           className="hidden"
+          aria-describedby="photo-help"
         />
+        <p id="photo-help" className="sr-only">
+          Upload foto profil dalam format JPG atau PNG dengan ukuran maksimal 5MB
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Profesi */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="profession" className="block text-sm font-medium text-gray-700 mb-2">
             Profesi
           </label>
           <div className="relative">
             <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
+              id="profession"
               type="text"
               value={formData.profession}
               onChange={(e) => updateFormData({ profession: e.target.value })}
@@ -125,12 +158,13 @@ export const DetailInfoStep: React.FC<DetailInfoStepProps> = ({
 
         {/* Pendidikan */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="education" className="block text-sm font-medium text-gray-700 mb-2">
             Pendidikan
           </label>
           <div className="relative">
             <GraduationCap className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <select
+              id="education"
               value={formData.education}
               onChange={(e) => updateFormData({ education: e.target.value })}
               className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
@@ -149,12 +183,13 @@ export const DetailInfoStep: React.FC<DetailInfoStepProps> = ({
 
         {/* Alamat */}
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="current-location" className="block text-sm font-medium text-gray-700 mb-2">
             Alamat Lengkap
           </label>
           <div className="relative">
             <MapPin className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
             <textarea
+              id="current-location"
               value={formData.currentLocation}
               onChange={(e) => updateFormData({ currentLocation: e.target.value })}
               rows={3}
@@ -166,12 +201,13 @@ export const DetailInfoStep: React.FC<DetailInfoStepProps> = ({
 
         {/* Nomor Telepon */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
             Nomor Telepon
           </label>
           <div className="relative">
             <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
+              id="phone"
               type="tel"
               value={formData.phone}
               onChange={(e) => updateFormData({ phone: e.target.value })}
@@ -188,12 +224,13 @@ export const DetailInfoStep: React.FC<DetailInfoStepProps> = ({
 
         {/* Email */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
             Email
           </label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
+              id="email"
               type="email"
               value={formData.email}
               onChange={(e) => updateFormData({ email: e.target.value })}
@@ -210,10 +247,11 @@ export const DetailInfoStep: React.FC<DetailInfoStepProps> = ({
 
         {/* Social Media */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="social-media" className="block text-sm font-medium text-gray-700 mb-2">
             Media Sosial
           </label>
           <input
+            id="social-media"
             type="text"
             value={formData.socialMedia}
             onChange={(e) => updateFormData({ socialMedia: e.target.value })}
@@ -224,10 +262,11 @@ export const DetailInfoStep: React.FC<DetailInfoStepProps> = ({
 
         {/* Catatan */}
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-2">
             Catatan Khusus
           </label>
           <textarea
+            id="notes"
             value={formData.notes}
             onChange={(e) => updateFormData({ notes: e.target.value })}
             rows={4}

@@ -1,6 +1,6 @@
 import React from 'react';
 import { FamilyTable } from './FamilyTable';
-import { useFamilyStore } from '@/store/familyStore';
+import { useFamilyStore } from '../../store/familyStore';
 
 export const ListView: React.FC = () => {
   const { viewMode } = useFamilyStore();

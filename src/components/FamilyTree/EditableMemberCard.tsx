@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { FamilyMember } from '@/types/family';
-import { useFamilyStore } from '@/store/familyStore';
+// Fix React import for TypeScript
+import * as React from 'react';
+import { useState } from 'react';
+import { FamilyMember } from '../../types/family';
+import { useFamilyStore } from '../../store/familyStore';
 import { 
-  Plus, 
   ArrowUp, 
   ArrowDown, 
   ArrowLeft, 
@@ -13,7 +14,7 @@ import {
   Move
 } from 'lucide-react';
 import { RelationshipSelectionModal } from './RelationshipSelectionModal';
-import { AddMemberModal } from '@/components/Forms/AddMemberModal';
+import { AddMemberModal } from '../Forms/AddMemberModal';
 
 interface EditableMemberCardProps {
   member: FamilyMember;
@@ -22,10 +23,34 @@ interface EditableMemberCardProps {
 
 type Direction = 'up' | 'down' | 'left' | 'right';
 
+interface DirectionalPlusButtonProps {
+  direction: Direction;
+  icon: React.ReactNode;
+  tooltip: string;
+  className: string;
+  onDirectionalAdd: (direction: Direction) => void;
+}
+
+const DirectionalPlusButton: React.FC<DirectionalPlusButtonProps> = ({ direction, icon, tooltip, className, onDirectionalAdd }: DirectionalPlusButtonProps) => (
+  <button
+    onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+      e.stopPropagation();
+      onDirectionalAdd(direction);
+    }}
+    className={`absolute w-6 h-6 bg-white border-2 border-blue-500 rounded-full flex items-center justify-center text-blue-600 hover:bg-blue-50 hover:scale-110 transition-all duration-200 shadow-md hover:shadow-lg group ${className}`}
+    title={tooltip}
+  >
+    {icon}
+    <div className="absolute invisible group-hover:visible bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-50 -top-8 left-1/2 transform -translate-x-1/2">
+      {tooltip}
+    </div>
+  </button>
+);
+
 export const EditableMemberCard: React.FC<EditableMemberCardProps> = ({ 
   member, 
   position 
-}) => {
+}: EditableMemberCardProps) => {
   const { setSelectedMember, selectedMember, editMode } = useFamilyStore();
   const [showRelationshipModal, setShowRelationshipModal] = useState(false);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
@@ -82,62 +107,66 @@ export const EditableMemberCard: React.FC<EditableMemberCardProps> = ({
 
   const isSelected = selectedMember?.id === member.id;
 
-  const DirectionalPlusButton: React.FC<{
-    direction: Direction;
-    icon: React.ReactNode;
-    tooltip: string;
-    className: string;
-  }> = ({ direction, icon, tooltip, className }) => (
-    <button
-      onClick={(e) => {
-        e.stopPropagation();
-        handleDirectionalAdd(direction);
-      }}
-      className={`absolute w-6 h-6 bg-white border-2 border-blue-500 rounded-full flex items-center justify-center text-blue-600 hover:bg-blue-50 hover:scale-110 transition-all duration-200 shadow-md hover:shadow-lg group ${className}`}
-      title={tooltip}
-    >
-      {icon}
-      <div className="absolute invisible group-hover:visible bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-50 -top-8 left-1/2 transform -translate-x-1/2">
-        {tooltip}
-      </div>
-    </button>
-  );
+  // Replace nested ternary for border color
+  let borderColorClass = '';
+  if (editMode) {
+    borderColorClass = 'border-blue-500 bg-blue-50 border-4 cursor-pointer';
+  } else if (member.gender === 'male') {
+    borderColorClass = 'border-blue-200 hover:border-blue-400';
+  } else {
+    borderColorClass = 'border-pink-200 hover:border-pink-400';
+  }
+
+  let selectedBorderClass = '';
+  if (isSelected) {
+    selectedBorderClass = member.gender === 'male' ? 'border-blue-500 shadow-lg' : 'border-pink-500 shadow-lg';
+  }
 
   return (
     <>
       <div
-        className={`absolute cursor-pointer transition-all duration-200 ${
-          editMode ? 'hover:scale-105' : 'transform hover:scale-105 hover:z-10'
-        } ${
-          isSelected ? 'z-20 scale-105' : ''
-        }`}
+        className={`absolute transition-all duration-200 ${editMode ? 'hover:scale-105' : 'transform hover:scale-105 hover:z-10'} ${isSelected ? 'z-20 scale-105' : ''}`}
         style={{
           left: position.x,
           top: position.y,
           transform: `translate(-50%, -50%)`,
         }}
-        onClick={handleClick}
-        onContextMenu={handleContextMenu}
       >
+        {/* Interactive button overlay for accessibility */}
+        <button
+          type="button"
+          className="absolute inset-0 w-full h-full bg-transparent border-none outline-none p-0 m-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-lg z-10"
+          onClick={handleClick}
+          onContextMenu={handleContextMenu}
+          onKeyDown={(e: React.KeyboardEvent<HTMLButtonElement>) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleClick();
+            }
+            if (e.key === 'ContextMenu' || (e.key === 'F10' && e.shiftKey)) {
+              e.preventDefault();
+              const rect = e.currentTarget.getBoundingClientRect();
+              const event = {
+                preventDefault: () => {},
+                clientX: rect.left + rect.width / 2,
+                clientY: rect.top + rect.height / 2,
+              };
+              handleContextMenu(event as React.MouseEvent);
+            }
+          }}
+          aria-label={`${member.name} family member card${editMode ? ' - click to edit or right-click for more options' : ' - click to select'}`}
+          aria-describedby={`member-info-${member.id}`}
+        />
+        
         <div
-          className={`w-40 bg-white rounded-lg shadow-md hover:shadow-lg border-2 transition-all duration-200 ${
-            editMode 
-              ? 'border-blue-500 bg-blue-50 border-4 cursor-pointer' 
-              : member.gender === 'male' 
-                ? 'border-blue-200 hover:border-blue-400' 
-                : 'border-pink-200 hover:border-pink-400'
-          } ${
-            isSelected 
-              ? member.gender === 'male' 
-                ? 'border-blue-500 shadow-lg' 
-                : 'border-pink-500 shadow-lg'
-              : ''
-          } ${
-            !member.isAlive ? 'border-gray-400 bg-gray-50' : ''
-          }`}
+          id={`member-info-${member.id}`}
+          className={`w-40 bg-white rounded-lg shadow-md hover:shadow-lg border-2 transition-all duration-200 ${borderColorClass} ${selectedBorderClass} ${!member.isAlive ? 'border-gray-400 bg-gray-50' : ''}`}
         >
           {/* Status Indicators */}
-          <div className="absolute -top-2 -right-2 flex space-x-1">
+          <output
+            className="absolute -top-2 -right-2 flex space-x-1"
+            aria-label="Status indicators"
+          >
             {member.maritalStatus === 'married' && (
               <div className="w-4 h-4 bg-yellow-400 rounded-full border-2 border-white flex items-center justify-center">
                 <span className="text-xs">💍</span>
@@ -148,41 +177,38 @@ export const EditableMemberCard: React.FC<EditableMemberCardProps> = ({
                 <span className="text-xs text-white">✕</span>
               </div>
             )}
-          </div>
+          </output>
 
           {/* Directional Plus Icons - Only in Edit Mode */}
           {editMode && (
             <>
-              {/* Plus Up - Add Parent */}
               <DirectionalPlusButton
                 direction="up"
                 icon={<ArrowUp className="w-3 h-3" />}
                 tooltip="Tambah Orang Tua"
                 className="-top-3 left-1/2 transform -translate-x-1/2"
+                onDirectionalAdd={handleDirectionalAdd}
               />
-
-              {/* Plus Down - Add Child */}
               <DirectionalPlusButton
                 direction="down"
                 icon={<ArrowDown className="w-3 h-3" />}
                 tooltip="Tambah Anak/Keturunan"
                 className="-bottom-3 left-1/2 transform -translate-x-1/2"
+                onDirectionalAdd={handleDirectionalAdd}
               />
-
-              {/* Plus Left - Add Spouse (Left) */}
               <DirectionalPlusButton
                 direction="left"
                 icon={<ArrowLeft className="w-3 h-3" />}
                 tooltip="Tambah Pasangan (Kiri)"
                 className="-left-3 top-1/2 transform -translate-y-1/2"
+                onDirectionalAdd={handleDirectionalAdd}
               />
-
-              {/* Plus Right - Add Spouse (Right) */}
               <DirectionalPlusButton
                 direction="right"
                 icon={<ArrowRight className="w-3 h-3" />}
                 tooltip="Tambah Pasangan (Kanan)"
                 className="-right-3 top-1/2 transform -translate-y-1/2"
+                onDirectionalAdd={handleDirectionalAdd}
               />
             </>
           )}
@@ -242,9 +268,17 @@ export const EditableMemberCard: React.FC<EditableMemberCardProps> = ({
       {/* Context Menu */}
       {showContextMenu && editMode && (
         <>
-          <div 
-            className="fixed inset-0 z-40" 
+          {/* Use a button for the overlay for accessibility */}
+          <button
+            type="button"
+            className="fixed inset-0 z-40 bg-transparent p-0 m-0 border-none outline-none"
+            aria-label="Close context menu"
+            tabIndex={0}
             onClick={() => setShowContextMenu(false)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' || e.key === ' ') setShowContextMenu(false);
+            }}
+            style={{ cursor: 'default' }}
           />
           <div 
             className="fixed bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-50 min-w-48"

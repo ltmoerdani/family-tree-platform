@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { FamilyMember } from '@/types/family';
-import { useFamilyStore } from '@/store/familyStore';
-import { MapPin, Briefcase, Calendar, Phone, Mail, MoreVertical, Edit, Plus } from 'lucide-react';
-import { AddMemberModal } from '@/components/Forms/AddMemberModal';
+import { FamilyMember } from '../../types/family';
+import { useFamilyStore } from '../../store/familyStore';
+import { MapPin, Briefcase, Calendar, Phone, Mail, Edit, Plus } from 'lucide-react';
+import { AddMemberModal } from '../Forms/AddMemberModal';
 
 interface GridMemberCardProps {
   member: FamilyMember;
@@ -43,8 +43,13 @@ export const GridMemberCard: React.FC<GridMemberCardProps> = ({
 
   const calculateAge = () => {
     const birthYear = new Date(member.birthDate).getFullYear();
-    const currentYear = member.isAlive ? new Date().getFullYear() : 
-                       (member.deathDate ? new Date(member.deathDate).getFullYear() : new Date().getFullYear());
+    const getCurrentYear = () => {
+      if (member.isAlive) {
+        return new Date().getFullYear();
+      }
+      return member.deathDate ? new Date(member.deathDate).getFullYear() : new Date().getFullYear();
+    };
+    const currentYear = getCurrentYear();
     return currentYear - birthYear;
   };
 
@@ -69,7 +74,7 @@ export const GridMemberCard: React.FC<GridMemberCardProps> = ({
       );
     }
     
-    if (member.education && member.education.includes('S')) {
+    if (member.education?.includes('S')) {
       icons.push(
         <div key="education" className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center text-xs text-white">
           🎓
@@ -88,10 +93,31 @@ export const GridMemberCard: React.FC<GridMemberCardProps> = ({
     return icons;
   };
 
+  const getAriaLabel = () => {
+    const professionText = member.profession ? `, ${member.profession}` : '';
+    return `Family member ${member.name}, ${calculateAge()} years old, generation ${member.generation}${professionText}`;
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleClick();
+    } else if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) {
+      event.preventDefault();
+      const rect = event.currentTarget.getBoundingClientRect();
+      setContextMenuPosition({ 
+        x: rect.left + rect.width / 2, 
+        y: rect.top + rect.height / 2 
+      });
+      setShowContextMenu(true);
+    }
+  };
+
   return (
     <>
-      <div
-        className={`relative bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer group transform hover:-translate-y-1 ${
+      <button
+        type="button"
+        className={`relative bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer group transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 w-full text-left ${
           isSelected ? 'ring-2 ring-blue-500 shadow-lg' : ''
         } ${
           member.gender === 'male' 
@@ -102,6 +128,9 @@ export const GridMemberCard: React.FC<GridMemberCardProps> = ({
         }`}
         onClick={handleClick}
         onContextMenu={handleContextMenu}
+        onKeyDown={handleKeyDown}
+        aria-label={getAriaLabel()}
+        aria-pressed={isSelected}
       >
         {/* Status Icons */}
         <div className="absolute -top-2 -right-2 flex space-x-1 z-10">
@@ -183,14 +212,21 @@ export const GridMemberCard: React.FC<GridMemberCardProps> = ({
             {member.generation}
           </div>
         </div>
-      </div>
+      </button>
 
       {/* Context Menu */}
       {showContextMenu && (
         <>
-          <div 
-            className="fixed inset-0 z-40" 
+          <button 
+            type="button"
+            className="fixed inset-0 z-40 cursor-default bg-transparent border-none p-0 m-0 outline-none"
             onClick={() => setShowContextMenu(false)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                setShowContextMenu(false);
+              }
+            }}
+            aria-label="Close context menu"
           />
           <div 
             className="fixed bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-50 min-w-48"

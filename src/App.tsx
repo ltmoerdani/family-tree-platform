@@ -1,14 +1,14 @@
-import React, { useEffect, useState } from 'react';
-import { Header } from '@/components/Header/Header';
-import { Toolbar } from '@/components/Toolbar/Toolbar';
-import { StatsSidebar } from '@/components/Sidebar/StatsSidebar';
-import { MemberDetailSidebar } from '@/components/Sidebar/MemberDetailSidebar';
-import { FamilyTreeView } from '@/components/FamilyTree/FamilyTreeView';
-import { BottomNavigation } from '@/components/BottomNavigation/BottomNavigation';
-import { MiniMap } from '@/components/FloatingElements/MiniMap';
-import { Legend } from '@/components/FloatingElements/Legend';
-import { useFamilyStore } from '@/store/familyStore';
-import { mockFamilyData } from '@/data/mockData';
+import { useEffect, useState } from 'react';
+import { Header } from './components/Header/Header';
+import { Toolbar } from './components/Toolbar/Toolbar';
+import { StatsSidebar } from './components/Sidebar/StatsSidebar';
+import { MemberDetailSidebar } from './components/Sidebar/MemberDetailSidebar';
+import { FamilyTreeView } from './components/FamilyTree/FamilyTreeView';
+import { BottomNavigation } from './components/BottomNavigation/BottomNavigation';
+import { MiniMap } from './components/FloatingElements/MiniMap';
+import { Legend } from './components/FloatingElements/Legend';
+import { useFamilyStore } from './store/familyStore';
+import { mockFamilyData } from './data/mockData';
 
 function App() {
   const { setMembers, selectedMember } = useFamilyStore();

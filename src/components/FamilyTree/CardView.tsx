@@ -1,6 +1,6 @@
 import React from 'react';
 import { MemberCardGrid } from './MemberCardGrid';
-import { useFamilyStore } from '@/store/familyStore';
+import { useFamilyStore } from '../../store/familyStore';
 
 export const CardView: React.FC = () => {
   const { viewMode } = useFamilyStore();

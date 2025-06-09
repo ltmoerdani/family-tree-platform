@@ -1,22 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { X, User, Users, FileText, Camera, Upload, Check, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
-import { FamilyMember } from '@/types/family';
-import { useFamilyStore } from '@/store/familyStore';
+// Fix React import for TypeScript
+import * as React from 'react';
+import { useState, useEffect } from 'react';
+import { X, User, Users, FileText, Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { FamilyMember } from '../../types/family';
+import { useFamilyStore } from '../../store/familyStore';
 import { BasicInfoStep } from './steps/BasicInfoStep';
 import { RelationshipStep } from './steps/RelationshipStep';
 import { DetailInfoStep } from './steps/DetailInfoStep';
 import { PreviewStep } from './steps/PreviewStep';
 
+interface RelationshipContext {
+  direction: 'up' | 'down' | 'left' | 'right';
+  relationship: string;
+  relativeTo: FamilyMember;
+}
+
 interface AddMemberModalProps {
   isOpen: boolean;
   onClose: () => void;
-  editingMember?: FamilyMember | null;
-  preselectedParent?: FamilyMember | null;
-  relationshipContext?: {
-    direction: 'up' | 'down' | 'left' | 'right';
-    relationship: string;
-    relativeTo: FamilyMember;
-  };
+  editingMember?: FamilyMember;
+  preselectedParent?: FamilyMember;
+  relationshipContext?: RelationshipContext;
 }
 
 export interface FormData {
@@ -80,7 +84,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
   editingMember,
   preselectedParent,
   relationshipContext
-}) => {
+}: AddMemberModalProps) => {
   const { addMember, updateMember, members, setHasUnsavedChanges } = useFamilyStore();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>(initialFormData);
@@ -95,120 +99,142 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
     { number: 4, title: 'Preview', icon: Check, component: PreviewStep }
   ];
 
-  useEffect(() => {
-    if (isOpen) {
-      if (editingMember) {
-        // Populate form with existing member data
-        setFormData({
-          name: editingMember.name,
-          nickname: editingMember.nickname || '',
-          gender: editingMember.gender,
-          birthDate: editingMember.birthDate,
-          birthPlace: editingMember.birthPlace || '',
-          isAlive: editingMember.isAlive,
-          deathDate: editingMember.deathDate || '',
-          onlyBirthYear: false,
-          parentIds: editingMember.parentIds || [],
-          spouseId: editingMember.spouseId || '',
-          relationshipType: 'child',
-          isAdopted: false,
-          isHeadOfFamily: false,
-          profession: editingMember.profession || '',
-          education: editingMember.education || '',
-          currentLocation: editingMember.currentLocation || '',
-          phone: editingMember.phone || '',
-          email: editingMember.email || '',
-          socialMedia: '',
-          notes: '',
-          photoFile: null,
-          photoUrl: editingMember.photoUrl || ''
-        });
-        setCurrentStep(1);
-      } else {
-        let newFormData = { ...initialFormData };
-        
-        // Handle preselected parent
-        if (preselectedParent) {
-          newFormData.parentIds = [preselectedParent.id];
-          newFormData.relationshipType = 'child';
-        }
-        
-        // Handle relationship context from directional plus
-        if (relationshipContext) {
-          const { direction, relationship, relativeTo } = relationshipContext;
-          
-          // Auto-fill gender based on relationship
-          if (relationship === 'father' || relationship === 'husband') {
-            newFormData.gender = 'male';
-          } else if (relationship === 'mother' || relationship === 'wife') {
-            newFormData.gender = 'female';
-          }
-          
-          // Set relationship type and connections
-          switch (direction) {
-            case 'up':
-              newFormData.relationshipType = 'parent';
-              // Add this member as child of the new member
-              break;
-            case 'down':
-              newFormData.relationshipType = 'child';
-              newFormData.parentIds = [relativeTo.id];
-              break;
-            case 'left':
-            case 'right':
-              newFormData.relationshipType = 'spouse';
-              newFormData.spouseId = relativeTo.id;
-              break;
-          }
-        }
-        
-        setFormData(newFormData);
-        setCurrentStep(1);
-      }
-      setErrors({});
-      setIsDraft(false);
+  // Helper: Populate form data from editing member
+  function getFormDataFromEditingMember(editingMember: FamilyMember): FormData {
+    return {
+      name: editingMember.name,
+      nickname: editingMember.nickname ?? '',
+      gender: editingMember.gender,
+      birthDate: editingMember.birthDate,
+      birthPlace: editingMember.birthPlace ?? '',
+      isAlive: editingMember.isAlive,
+      deathDate: editingMember.deathDate ?? '',
+      onlyBirthYear: false,
+      parentIds: editingMember.parentIds ?? [],
+      spouseId: editingMember.spouseId ?? '',
+      relationshipType: 'child',
+      isAdopted: false,
+      isHeadOfFamily: false,
+      profession: editingMember.profession ?? '',
+      education: editingMember.education ?? '',
+      currentLocation: editingMember.currentLocation ?? '',
+      phone: editingMember.phone ?? '',
+      email: editingMember.email ?? '',
+      socialMedia: '',
+      notes: '',
+      photoFile: null,
+      photoUrl: editingMember.photoUrl ?? ''
+    };
+  }
+
+  // Helper: Apply relationship context to form data
+  function applyRelationshipContext(
+    formData: FormData,
+    relationshipContext: RelationshipContext
+  ): FormData {
+    const { direction, relationship, relativeTo } = relationshipContext;
+    let gender = formData.gender;
+    if (relationship === 'father' || relationship === 'husband') gender = 'male';
+    else if (relationship === 'mother' || relationship === 'wife') gender = 'female';
+    let relationshipType = formData.relationshipType;
+    let parentIds = formData.parentIds;
+    let spouseId = formData.spouseId;
+    switch (direction) {
+      case 'up':
+        relationshipType = 'parent';
+        break;
+      case 'down':
+        relationshipType = 'child';
+        parentIds = [relativeTo.id];
+        break;
+      case 'left':
+      case 'right':
+        relationshipType = 'spouse';
+        spouseId = relativeTo.id;
+        break;
     }
+    return {
+      ...formData,
+      gender,
+      relationshipType,
+      parentIds,
+      spouseId
+    };
+  }
+
+  // Refactored useEffect
+  useEffect(() => {
+    if (!isOpen) return;
+    if (editingMember) {
+      setFormData(getFormDataFromEditingMember(editingMember));
+      setCurrentStep(1);
+    } else {
+      let newFormData = { ...initialFormData };
+      if (preselectedParent) {
+        newFormData.parentIds = [preselectedParent.id];
+        newFormData.relationshipType = 'child';
+      }
+      if (relationshipContext) {
+        newFormData = applyRelationshipContext(newFormData, relationshipContext);
+      }
+      setFormData(newFormData);
+      setCurrentStep(1);
+    }
+    setErrors({});
+    setIsDraft(false);
   }, [isOpen, editingMember, preselectedParent, relationshipContext]);
 
-  const validateStep = (step: number): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    switch (step) {
-      case 1:
-        if (!formData.name.trim() || formData.name.length < 2) {
-          newErrors.name = 'Nama harus diisi minimal 2 karakter';
-        }
-        if (!formData.birthDate) {
-          newErrors.birthDate = 'Tanggal lahir harus diisi';
-        }
-        if (!formData.isAlive && formData.deathDate) {
-          const birthDate = new Date(formData.birthDate);
-          const deathDate = new Date(formData.deathDate);
-          if (deathDate <= birthDate) {
-            newErrors.deathDate = 'Tanggal wafat harus setelah tanggal lahir';
-          }
-        }
-        break;
-
-      case 2:
-        if (formData.relationshipType === 'child' && formData.parentIds.length === 0) {
-          newErrors.parentIds = 'Pilih minimal satu orang tua';
-        }
-        if (formData.relationshipType === 'spouse' && !formData.spouseId) {
-          newErrors.spouseId = 'Pilih pasangan';
-        }
-        break;
-
-      case 3:
-        if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-          newErrors.email = 'Format email tidak valid';
-        }
-        if (formData.phone && !/^[\+]?[0-9\-\(\)\s]+$/.test(formData.phone)) {
-          newErrors.phone = 'Format nomor telepon tidak valid';
-        }
-        break;
+  // --- validateStep helpers ---
+  function validateBasicInfo(formData: FormData): Record<string, string> {
+    const errors: Record<string, string> = {};
+    if (!formData.name.trim() || formData.name.length < 2) {
+      errors.name = 'Nama harus diisi minimal 2 karakter';
     }
+    if (!formData.birthDate) {
+      errors.birthDate = 'Tanggal lahir harus diisi';
+    }
+    if (!formData.isAlive && formData.deathDate) {
+      const birthDate = new Date(formData.birthDate);
+      const deathDate = new Date(formData.deathDate);
+      if (deathDate <= birthDate) {
+        errors.deathDate = 'Tanggal wafat harus setelah tanggal lahir';
+      }
+    }
+    return errors;
+  }
 
+  function validateRelationship(formData: FormData): Record<string, string> {
+    const errors: Record<string, string> = {};
+    if (formData.relationshipType === 'child' && formData.parentIds.length === 0) {
+      errors.parentIds = 'Pilih minimal satu orang tua';
+    }
+    if (formData.relationshipType === 'spouse' && !formData.spouseId) {
+      errors.spouseId = 'Pilih pasangan';
+    }
+    return errors;
+  }
+
+  function validateDetails(formData: FormData): Record<string, string> {
+    const errors: Record<string, string> = {};
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = 'Format email tidak valid';
+    }
+    if (formData.phone && !/^\+?[0-9\-()\s]+$/.test(formData.phone)) {
+      errors.phone = 'Format nomor telepon tidak valid';
+    }
+    return errors;
+  }
+
+  // Refactored validateStep
+  const validateStep = (step: number): boolean => {
+    let newErrors: Record<string, string> = {};
+    if (step === 1) {
+      newErrors = validateBasicInfo(formData);
+    } else if (step === 2) {
+      newErrors = validateRelationship(formData);
+    } else if (step === 3) {
+      newErrors = validateDetails(formData);
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -237,27 +263,27 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
     
     try {
       const newMember: FamilyMember = {
-        id: editingMember?.id || Date.now().toString(),
+        id: editingMember?.id ?? Date.now().toString(),
         name: formData.name,
-        nickname: formData.nickname || undefined,
+        nickname: formData.nickname ?? undefined,
         birthDate: formData.birthDate,
-        birthPlace: formData.birthPlace || undefined,
-        currentLocation: formData.currentLocation || undefined,
-        profession: formData.profession || undefined,
-        education: formData.education || undefined,
+        birthPlace: formData.birthPlace ?? undefined,
+        currentLocation: formData.currentLocation ?? undefined,
+        profession: formData.profession ?? undefined,
+        education: formData.education ?? undefined,
         gender: formData.gender,
-        photoUrl: formData.photoUrl || undefined,
-        spouseId: formData.spouseId || undefined,
+        photoUrl: formData.photoUrl ?? undefined,
+        spouseId: formData.spouseId ?? undefined,
         parentIds: formData.parentIds.length > 0 ? formData.parentIds : undefined,
-        childrenIds: editingMember?.childrenIds || [],
-        siblingIds: editingMember?.siblingIds || [],
-        email: formData.email || undefined,
-        phone: formData.phone || undefined,
+        childrenIds: editingMember?.childrenIds ?? [],
+        siblingIds: editingMember?.siblingIds ?? [],
+        email: formData.email ?? undefined,
+        phone: formData.phone ?? undefined,
         isAlive: formData.isAlive,
-        deathDate: formData.deathDate || undefined,
+        deathDate: formData.deathDate ?? undefined,
         generation: calculateGeneration(),
         maritalStatus: formData.spouseId ? 'married' : 'single',
-        created_at: editingMember?.created_at || new Date().toISOString(),
+        created_at: editingMember?.created_at ?? new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
 
@@ -279,7 +305,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
 
   const calculateGeneration = (): number => {
     if (formData.parentIds.length > 0) {
-      const parent = members.find(m => m.id === formData.parentIds[0]);
+      const parent = members.find((m: FamilyMember) => m.id === formData.parentIds[0]);
       return parent ? parent.generation + 1 : 1;
     }
     if (relationshipContext?.direction === 'up') {
@@ -303,6 +329,20 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
 
   const CurrentStepComponent = steps[currentStep - 1].component;
 
+  // Refactor nested ternary for title
+  let modalTitle = 'Tambah Anggota Keluarga';
+  if (relationshipContext) {
+    modalTitle = `Tambah ${getRelationshipTitle()}`;
+  }
+
+  // Before the submit button rendering in the footer:
+  let submitButtonText = 'Simpan';
+  if (isSubmitting) {
+    submitButtonText = 'Menyimpan...';
+  } else if (editingMember) {
+    submitButtonText = 'Update';
+  }
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -310,9 +350,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div>
             <h2 className="text-xl font-bold text-gray-900">
-              {editingMember ? 'Edit Anggota Keluarga' : 
-               relationshipContext ? `Tambah ${getRelationshipTitle()}` : 
-               'Tambah Anggota Keluarga'}
+              {editingMember ? 'Edit Anggota Keluarga' : modalTitle}
             </h2>
             <p className="text-sm text-gray-600 mt-1">
               {steps[currentStep - 1].title}
@@ -334,15 +372,27 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
               const isActive = currentStep === step.number;
               const isCompleted = currentStep > step.number;
               
+              // Refactor stepper button class and text color to avoid nested ternary
+              let stepperButtonClass = '';
+              if (isCompleted) {
+                stepperButtonClass = 'bg-green-500 border-green-500 text-white scale-110';
+              } else if (isActive) {
+                stepperButtonClass = 'bg-blue-500 border-blue-500 text-white scale-110';
+              } else {
+                stepperButtonClass = 'border-gray-300 text-gray-400';
+              }
+              let stepperTextColor = '';
+              if (isActive) {
+                stepperTextColor = 'text-blue-600';
+              } else if (isCompleted) {
+                stepperTextColor = 'text-green-600';
+              } else {
+                stepperTextColor = 'text-gray-400';
+              }
+              
               return (
                 <div key={step.number} className="flex items-center">
-                  <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 transition-all duration-200 ${
-                    isCompleted 
-                      ? 'bg-green-500 border-green-500 text-white scale-110' 
-                      : isActive 
-                        ? 'bg-blue-500 border-blue-500 text-white scale-110' 
-                        : 'border-gray-300 text-gray-400'
-                  }`}>
+                  <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 transition-all duration-200 ${stepperButtonClass}`}>
                     {isCompleted ? (
                       <Check className="w-4 h-4" />
                     ) : (
@@ -350,9 +400,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
                     )}
                   </div>
                   <div className="ml-2 hidden sm:block">
-                    <div className={`text-sm font-medium transition-colors ${
-                      isActive ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-gray-400'
-                    }`}>
+                    <div className={`text-sm font-medium transition-colors ${stepperTextColor}`}>
                       {step.title}
                     </div>
                   </div>
@@ -417,7 +465,8 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
                   {isSubmitting && (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   )}
-                  <span>{isSubmitting ? 'Menyimpan...' : editingMember ? 'Update' : 'Simpan'}</span>
+                  {/* For submit button text */}
+                  <span>{submitButtonText}</span>
                 </button>
                 
                 {!editingMember && (

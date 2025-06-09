@@ -2,7 +2,7 @@ import React from 'react';
 import { TreeCanvas } from './TreeCanvas';
 import { CardView } from './CardView';
 import { ListView } from './ListView';
-import { useFamilyStore } from '@/store/familyStore';
+import { useFamilyStore } from '../../store/familyStore';
 
 export const FamilyTreeView: React.FC = () => {
   const { viewMode } = useFamilyStore();

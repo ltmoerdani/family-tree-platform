@@ -1,6 +1,6 @@
 import React from 'react';
 import { Search, Bell, Menu } from 'lucide-react';
-import { useFamilyStore } from '@/store/familyStore';
+import { useFamilyStore } from '../../store/familyStore';
 
 interface HeaderProps {
   onMenuToggle: () => void;

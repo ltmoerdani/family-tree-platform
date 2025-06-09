@@ -1,12 +1,10 @@
 import React from 'react';
 import { Check, User, Users, MapPin, Phone, Mail, Calendar, Briefcase } from 'lucide-react';
 import { FormData } from '../AddMemberModal';
-import { FamilyMember } from '@/types/family';
+import { FamilyMember } from '../../../types/family';
 
 interface PreviewStepProps {
   formData: FormData;
-  updateFormData: (updates: Partial<FormData>) => void;
-  errors: Record<string, string>;
   members: FamilyMember[];
 }
 
@@ -17,11 +15,17 @@ export const PreviewStep: React.FC<PreviewStepProps> = ({
   const selectedParents = members.filter(m => formData.parentIds.includes(m.id));
   const selectedSpouse = members.find(m => m.id === formData.spouseId);
 
+  const getEndYear = () => {
+    if (formData.isAlive) {
+      return new Date().getFullYear();
+    }
+    return formData.deathDate ? new Date(formData.deathDate).getFullYear() : new Date().getFullYear();
+  };
+
   const calculateAge = () => {
     const birthYear = new Date(formData.birthDate).getFullYear();
-    const currentYear = formData.isAlive ? new Date().getFullYear() : 
-                       (formData.deathDate ? new Date(formData.deathDate).getFullYear() : new Date().getFullYear());
-    return currentYear - birthYear;
+    const endYear = getEndYear();
+    return endYear - birthYear;
   };
 
   return (

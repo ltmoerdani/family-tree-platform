@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Phone, Mail, MapPin, Calendar, Briefcase, GraduationCap, Heart, MessageCircle, Edit } from 'lucide-react';
-import { useFamilyStore } from '@/store/familyStore';
-import { AddMemberModal } from '@/components/Forms/AddMemberModal';
+import { useFamilyStore } from '../../store/familyStore';
+import { AddMemberModal } from '../Forms/AddMemberModal';
 
 export const MemberDetailSidebar: React.FC = () => {
   const { selectedMember, setSelectedMember } = useFamilyStore();

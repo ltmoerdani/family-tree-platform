@@ -1,8 +1,10 @@
-import React, { useRef, useEffect, useState } from 'react';
+// Fix React import for TypeScript
+import * as React from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { EditableMemberCard } from './EditableMemberCard';
 import { MemberCard } from './MemberCard';
-import { useFamilyStore } from '@/store/familyStore';
-import { FamilyMember } from '@/types/family';
+import { useFamilyStore } from '../../store/familyStore';
+import { FamilyMember } from '../../types/family';
 
 export const TreeCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -22,9 +24,11 @@ export const TreeCanvas: React.FC = () => {
       generationGroups[member.generation].push(member);
     });
 
-    const generationKeys = Object.keys(generationGroups).map(Number).sort();
-    const canvasWidth = canvasSize.width || 1200;
-    const canvasHeight = canvasSize.height || 800;
+    // Provide a compare function for numeric sort
+    const generationKeys = Object.keys(generationGroups).map(Number).sort((a, b) => a - b);
+    const canvasWidth = canvasSize.width ?? 1200;
+    // Remove unused canvasHeight assignment
+    // const canvasHeight = canvasSize.height ?? 800;
     const generationHeight = 250;
     const cardSpacing = 200;
 
@@ -76,7 +80,7 @@ export const TreeCanvas: React.FC = () => {
   });
 
   return (
-    <div 
+    <section 
       ref={canvasRef}
       className={`flex-1 bg-gray-50 relative overflow-auto transition-all duration-200 ${
         editMode ? 'bg-blue-25' : ''
@@ -90,8 +94,21 @@ export const TreeCanvas: React.FC = () => {
         transform: `scale(${viewMode.zoom / 100})`,
         transformOrigin: 'top left',
       }}
-      onClick={handleCanvasClick}
+      aria-label="Family tree canvas - click to interact, press Escape to exit edit mode"
     >
+      {/* Interactive overlay for click and keyboard handling */}
+      <button
+        type="button"
+        className="absolute inset-0 w-full h-full bg-transparent border-none outline-none p-0 m-0 cursor-default focus:outline-none"
+        onClick={handleCanvasClick}
+        onKeyDown={e => {
+          // Allow keyboard users to exit edit mode with Escape
+          if (e.key === 'Escape' && editMode) setEditMode(false);
+        }}
+        aria-label="Canvas interaction area"
+        style={{ zIndex: 1 }}
+      />
+      
       {/* Connection Lines SVG */}
       <svg 
         className="absolute inset-0 pointer-events-none"
@@ -103,7 +120,7 @@ export const TreeCanvas: React.FC = () => {
           if (!memberPos) return null;
 
           // Draw lines to children
-          return member.childrenIds?.map(childId => {
+          return member.childrenIds?.map((childId: string) => {
             const childPos = positions[childId];
             if (!childPos) return null;
 
@@ -148,24 +165,26 @@ export const TreeCanvas: React.FC = () => {
       </svg>
 
       {/* Render Member Cards */}
-      {filteredMembers.map(member => {
-        const position = positions[member.id];
-        if (!position) return null;
+      <div style={{ position: 'relative', zIndex: 10 }}>
+        {filteredMembers.map(member => {
+          const position = positions[member.id];
+          if (!position) return null;
 
-        return editMode ? (
-          <EditableMemberCard
-            key={member.id}
-            member={member}
-            position={position}
-          />
-        ) : (
-          <MemberCard
-            key={member.id}
-            member={member}
-            position={position}
-          />
-        );
-      })}
+          return editMode ? (
+            <EditableMemberCard
+              key={member.id}
+              member={member}
+              position={position}
+            />
+          ) : (
+            <MemberCard
+              key={member.id}
+              member={member}
+              position={position}
+            />
+          );
+        })}
+      </div>
 
       {/* Generation Labels */}
       {Object.keys(
@@ -206,6 +225,6 @@ export const TreeCanvas: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+    </section>
   );
 };

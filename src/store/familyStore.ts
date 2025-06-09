@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { FamilyMember, FamilyStats, ViewMode, TreePosition } from '@/types/family';
+import { FamilyMember, FamilyStats, ViewMode, TreePosition } from '../types/family';
 
 interface FamilyStore {
   members: FamilyMember[];
@@ -97,10 +97,17 @@ export const useFamilyStore = create<FamilyStore>((set, get) => ({
     };
 
     members.forEach(member => {
+      // Helper function to calculate age
+      const calculateAge = (member: FamilyMember) => {
+        const birthYear = new Date(member.birthDate).getFullYear();
+        if (member.isAlive) {
+          return currentYear - birthYear;
+        }
+        return member.deathDate ? new Date(member.deathDate).getFullYear() - birthYear : 0;
+      };
+
       // Calculate age distribution
-      const birthYear = new Date(member.birthDate).getFullYear();
-      const age = member.isAlive ? currentYear - birthYear : 
-                  (member.deathDate ? new Date(member.deathDate).getFullYear() - birthYear : 0);
+      const age = calculateAge(member);
       
       if (age <= 18) stats.ageDistribution['0-18']++;
       else if (age <= 35) stats.ageDistribution['19-35']++;

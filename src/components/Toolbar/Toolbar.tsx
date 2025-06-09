@@ -1,6 +1,6 @@
-import React from 'react';
-import { Eye, Grid, List, ZoomIn, ZoomOut, Maximize, Filter, Edit3, Save, X } from 'lucide-react';
-import { useFamilyStore } from '@/store/familyStore';
+import * as React from 'react';
+import { Eye, ZoomIn, ZoomOut, Maximize, Edit3, Save, X } from 'lucide-react';
+import { useFamilyStore } from '../../store/familyStore';
 
 export const Toolbar: React.FC = () => {
   const { viewMode, setViewMode, editMode, setEditMode, hasUnsavedChanges } = useFamilyStore();
@@ -106,7 +106,7 @@ export const Toolbar: React.FC = () => {
             <span className="text-sm font-medium text-gray-700">Filter:</span>
             <select 
               className="px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-              value={viewMode.selectedGeneration || ''}
+              value={viewMode.selectedGeneration ?? ''}
               onChange={(e) => setViewMode({ 
                 selectedGeneration: e.target.value ? parseInt(e.target.value) : null 
               })}

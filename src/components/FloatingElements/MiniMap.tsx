@@ -1,8 +1,8 @@
 import React from 'react';
-import { useFamilyStore } from '@/store/familyStore';
+import { useFamilyStore } from '../../store/familyStore';
 
 export const MiniMap: React.FC = () => {
-  const { members, viewMode } = useFamilyStore();
+  const { members } = useFamilyStore();
 
   return (
     <div className="fixed bottom-4 right-4 w-48 h-32 bg-white border border-gray-300 rounded-lg shadow-lg p-2">

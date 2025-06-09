@@ -1,6 +1,6 @@
 import React from 'react';
-import { Users, TreePine, MapPin, Calendar } from 'lucide-react';
-import { useFamilyStore } from '@/store/familyStore';
+import { Users, TreePine, MapPin } from 'lucide-react';
+import { useFamilyStore } from '../../store/familyStore';
 
 export const StatsSidebar: React.FC = () => {
   const { stats } = useFamilyStore();

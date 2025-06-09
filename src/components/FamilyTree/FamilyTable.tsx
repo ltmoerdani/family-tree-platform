@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { useFamilyStore } from '@/store/familyStore';
-import { FamilyMember } from '@/types/family';
+import { useFamilyStore } from '../../store/familyStore';
+import { FamilyMember } from '../../types/family';
 import { 
   ChevronUp, 
   ChevronDown, 
@@ -9,12 +9,10 @@ import {
   Info, 
   MapPin,
   Users,
-  Calendar,
   Filter,
   Download,
   MessageSquare,
   Trash2,
-  Eye,
   Settings,
   Search
 } from 'lucide-react';
@@ -26,6 +24,251 @@ interface SortConfig {
   field: SortField;
   direction: SortDirection;
 }
+
+interface VisibleColumns {
+  photo: boolean;
+  name: boolean;
+  relationship: boolean;
+  birth: boolean;
+  age: boolean;
+  status: boolean;
+  location: boolean;
+  contact: boolean;
+}
+
+interface SortableHeaderProps {
+  field: SortField; 
+  children: React.ReactNode; 
+  className?: string;
+  sortConfig: SortConfig;
+  onSort: (field: SortField) => void;
+}
+
+const SortableHeader: React.FC<SortableHeaderProps> = ({ 
+  field, 
+  children, 
+  className = '',
+  sortConfig,
+  onSort
+}) => (
+  <th 
+    className={`px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors ${className}`}
+    onClick={() => onSort(field)}
+  >
+    <div className="flex items-center space-x-1">
+      <span>{children}</span>
+      {sortConfig.field === field && (
+        sortConfig.direction === 'asc' ? 
+          <ChevronUp className="w-3 h-3" /> : 
+          <ChevronDown className="w-3 h-3" />
+      )}
+    </div>
+  </th>
+);
+
+// Helper component for rendering table rows
+interface TableRowProps {
+  member: FamilyMember;
+  index: number;
+  isSelected: boolean;
+  isHighlighted: boolean;
+  searchQuery: string;
+  visibleColumns: VisibleColumns;
+  onRowClick: (member: FamilyMember) => void;
+  onRowSelect: (memberId: string) => void;
+  onMemberSelect: (member: FamilyMember) => void;
+  calculateAge: (birthDate: string, deathDate?: string) => number;
+  getRelationshipText: (member: FamilyMember) => string;
+  highlightText: (text: string, query: string) => React.ReactNode;
+}
+
+const TableRow: React.FC<TableRowProps> = ({
+  member,
+  index,
+  isSelected,
+  isHighlighted,
+  searchQuery,
+  visibleColumns,
+  onRowClick,
+  onRowSelect,
+  onMemberSelect,
+  calculateAge,
+  getRelationshipText,
+  highlightText
+}) => {
+  const age = calculateAge(member.birthDate, member.deathDate);
+
+  return (
+    <tr
+      key={member.id}
+      className={`h-16 transition-colors cursor-pointer ${
+        index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+      } ${
+        isSelected ? 'bg-blue-100' : ''
+      } ${
+        isHighlighted ? 'bg-blue-200 ring-2 ring-blue-400' : ''
+      } hover:bg-blue-50`}
+      onClick={() => onRowClick(member)}
+    >
+      <td className="px-4 py-3">
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={(e) => {
+            e.stopPropagation();
+            onRowSelect(member.id);
+          }}
+          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+        />
+      </td>
+
+      {visibleColumns.photo && (
+        <td className="px-4 py-3">
+          <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200">
+            {member.photoUrl ? (
+              <img
+                src={member.photoUrl}
+                alt={member.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div 
+                className={`w-full h-full flex items-center justify-center text-white text-sm font-bold ${
+                  member.gender === 'male' ? 'bg-blue-400' : 'bg-pink-400'
+                }`}
+              >
+                {member.name.charAt(0)}
+              </div>
+            )}
+          </div>
+        </td>
+      )}
+
+      {visibleColumns.name && (
+        <td className="px-4 py-3">
+          <div>
+            <div className="text-sm font-bold text-gray-900">
+              {highlightText(member.name, searchQuery)}
+            </div>
+            {member.nickname && (
+              <div className="text-xs text-gray-500 italic">
+                "{highlightText(member.nickname, searchQuery)}"
+              </div>
+            )}
+          </div>
+        </td>
+      )}
+
+      {visibleColumns.relationship && (
+        <td className="px-4 py-3">
+          <div className="flex items-center space-x-1">
+            <Users className="w-3 h-3 text-gray-400" />
+            <span className="text-sm text-gray-700">
+              {getRelationshipText(member)}
+            </span>
+          </div>
+        </td>
+      )}
+
+      {visibleColumns.birth && (
+        <td className="px-4 py-3">
+          <div className="text-sm text-gray-700">
+            {new Date(member.birthDate).toLocaleDateString('id-ID', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric'
+            })}
+          </div>
+        </td>
+      )}
+
+      {visibleColumns.age && (
+        <td className="px-4 py-3 text-right">
+          <div className={`text-sm font-medium ${
+            member.isAlive ? 'text-gray-900' : 'text-gray-500'
+          }`}>
+            {age} thn {!member.isAlive && '✝'}
+          </div>
+        </td>
+      )}
+
+      {visibleColumns.status && (
+        <td className="px-4 py-3 text-center">
+          <div className="flex items-center justify-center space-x-1">
+            <div className={`w-2 h-2 rounded-full ${
+              member.isAlive ? 'bg-green-500' : 'bg-gray-500'
+            }`} />
+            <span className="text-xs text-gray-700">
+              {member.isAlive ? 'Hidup' : 'Almarhum'}
+            </span>
+          </div>
+        </td>
+      )}
+
+      {visibleColumns.location && (
+        <td className="px-4 py-3">
+          {member.currentLocation && (
+            <div className="flex items-center space-x-1">
+              <MapPin className="w-3 h-3 text-gray-400" />
+              <span className="text-sm text-gray-700 truncate">
+                {highlightText(member.currentLocation, searchQuery)}
+              </span>
+            </div>
+          )}
+        </td>
+      )}
+
+      {visibleColumns.contact && (
+        <td className="px-4 py-3">
+          <div className="flex items-center justify-center space-x-1">
+            {member.phone && (
+              <button 
+                onClick={(e) => e.stopPropagation()}
+                className="p-1 text-green-600 hover:bg-green-100 rounded transition-colors"
+                title="WhatsApp"
+              >
+                <Phone className="w-3 h-3" />
+              </button>
+            )}
+            {member.email && (
+              <button 
+                onClick={(e) => e.stopPropagation()}
+                className="p-1 text-blue-600 hover:bg-blue-100 rounded transition-colors"
+                title="Email"
+              >
+                <Mail className="w-3 h-3" />
+              </button>
+            )}
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onMemberSelect(member);
+              }}
+              className="p-1 text-gray-600 hover:bg-gray-100 rounded transition-colors"
+              title="Detail"
+            >
+              <Info className="w-3 h-3" />
+            </button>
+          </div>
+        </td>
+      )}
+    </tr>
+  );
+};
+
+const getColumnLabel = (key: string): string => {
+  const columnLabels: Record<string, string> = {
+    photo: 'Foto',
+    name: 'Nama',
+    relationship: 'Hubungan',
+    birth: 'Lahir',
+    age: 'Usia',
+    status: 'Status',
+    location: 'Lokasi',
+    contact: 'Kontak'
+  };
+  return columnLabels[key] || key;
+};
 
 export const FamilyTable: React.FC = () => {
   const { 
@@ -55,27 +298,29 @@ export const FamilyTable: React.FC = () => {
 
   const tableRef = useRef<HTMLDivElement>(null);
 
+  // Helper functions to reduce cognitive complexity
   // Filter and search members
   const filteredMembers = useMemo(() => {
-    let filtered = members.filter(member => {
-      // Apply view mode filters
+    const applyViewModeFilters = (member: FamilyMember): boolean => {
       if (!viewMode.showAlive && member.isAlive) return false;
       if (!viewMode.showDeceased && !member.isAlive) return false;
       if (viewMode.selectedGeneration && member.generation !== viewMode.selectedGeneration) return false;
-      
-      // Apply global search filter
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        const matchesGlobal = (
-          member.name.toLowerCase().includes(query) ||
-          member.profession?.toLowerCase().includes(query) ||
-          member.currentLocation?.toLowerCase().includes(query) ||
-          member.nickname?.toLowerCase().includes(query)
-        );
-        if (!matchesGlobal) return false;
-      }
+      return true;
+    };
 
-      // Apply column-specific filters
+    const applyGlobalSearchFilter = (member: FamilyMember): boolean => {
+      if (!searchQuery) return true;
+      
+      const query = searchQuery.toLowerCase();
+      return (
+        member.name.toLowerCase().includes(query) ||
+        (member.profession?.toLowerCase().includes(query) ?? false) ||
+        (member.currentLocation?.toLowerCase().includes(query) ?? false) ||
+        (member.nickname?.toLowerCase().includes(query) ?? false)
+      );
+    };
+
+    const applyColumnFilters = (member: FamilyMember): boolean => {
       for (const [column, filter] of Object.entries(columnFilters)) {
         if (!filter) continue;
         const filterLower = filter.toLowerCase();
@@ -83,44 +328,50 @@ export const FamilyTable: React.FC = () => {
         switch (column) {
           case 'name':
             if (!member.name.toLowerCase().includes(filterLower) && 
-                !member.nickname?.toLowerCase().includes(filterLower)) return false;
+                !(member.nickname?.toLowerCase().includes(filterLower) ?? false)) return false;
             break;
           case 'location':
-            if (!member.currentLocation?.toLowerCase().includes(filterLower)) return false;
+            if (!(member.currentLocation?.toLowerCase().includes(filterLower) ?? false)) return false;
             break;
           case 'profession':
-            if (!member.profession?.toLowerCase().includes(filterLower)) return false;
+            if (!(member.profession?.toLowerCase().includes(filterLower) ?? false)) return false;
             break;
         }
       }
-      
       return true;
+    };
+
+    const filtered = members.filter((member: FamilyMember) => {
+      return applyViewModeFilters(member) && 
+             applyGlobalSearchFilter(member) && 
+             applyColumnFilters(member);
     });
 
     // Sort members
-    filtered.sort((a, b) => {
+    filtered.sort((a: FamilyMember, b: FamilyMember) => {
       let comparison = 0;
       
       switch (sortConfig.field) {
         case 'name':
           comparison = a.name.localeCompare(b.name);
           break;
-        case 'age':
+        case 'age': {
           const ageA = calculateAge(a.birthDate, a.deathDate);
           const ageB = calculateAge(b.birthDate, b.deathDate);
           comparison = ageA - ageB;
           break;
+        }
         case 'generation':
           comparison = a.generation - b.generation;
           break;
         case 'location':
-          comparison = (a.currentLocation || '').localeCompare(b.currentLocation || '');
+          comparison = (a.currentLocation ?? '').localeCompare(b.currentLocation ?? '');
           break;
         case 'birthDate':
           comparison = new Date(a.birthDate).getTime() - new Date(b.birthDate).getTime();
           break;
         case 'profession':
-          comparison = (a.profession || '').localeCompare(b.profession || '');
+          comparison = (a.profession ?? '').localeCompare(b.profession ?? '');
           break;
       }
       
@@ -144,7 +395,7 @@ export const FamilyTable: React.FC = () => {
 
   const getRelationshipText = (member: FamilyMember) => {
     if (member.parentIds && member.parentIds.length > 0) {
-      const parent = members.find(m => m.id === member.parentIds![0]);
+      const parent = members.find((m: FamilyMember) => m.id === member.parentIds![0]);
       return parent ? `Anak dari ${parent.name}` : 'Anak';
     }
     if (member.generation === 1) return 'Kakek/Nenek';
@@ -173,7 +424,7 @@ export const FamilyTable: React.FC = () => {
     if (selectedRows.size === currentMembers.length) {
       setSelectedRows(new Set());
     } else {
-      setSelectedRows(new Set(currentMembers.map(m => m.id)));
+      setSelectedRows(new Set(currentMembers.map((m: FamilyMember) => m.id)));
     }
   };
 
@@ -185,34 +436,14 @@ export const FamilyTable: React.FC = () => {
     if (!query) return text;
     
     const parts = text.split(new RegExp(`(${query})`, 'gi'));
-    return parts.map((part, index) => 
+    return parts.map((part, partIndex) => 
       part.toLowerCase() === query.toLowerCase() ? (
-        <mark key={index} className="bg-yellow-200 px-1 rounded">
+        <mark key={`${text}-highlight-${partIndex}-${part}`} className="bg-yellow-200 px-1 rounded">
           {part}
         </mark>
       ) : part
     );
   };
-
-  const SortableHeader: React.FC<{ field: SortField; children: React.ReactNode; className?: string }> = ({ 
-    field, 
-    children, 
-    className = '' 
-  }) => (
-    <th 
-      className={`px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors ${className}`}
-      onClick={() => handleSort(field)}
-    >
-      <div className="flex items-center space-x-1">
-        <span>{children}</span>
-        {sortConfig.field === field && (
-          sortConfig.direction === 'asc' ? 
-            <ChevronUp className="w-3 h-3" /> : 
-            <ChevronDown className="w-3 h-3" />
-        )}
-      </div>
-    </th>
-  );
 
   useEffect(() => {
     setCurrentPage(1);
@@ -311,14 +542,7 @@ export const FamilyTable: React.FC = () => {
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
                 <span className="text-sm text-gray-600 capitalize">
-                  {key === 'photo' ? 'Foto' : 
-                   key === 'name' ? 'Nama' :
-                   key === 'relationship' ? 'Hubungan' :
-                   key === 'birth' ? 'Lahir' :
-                   key === 'age' ? 'Usia' :
-                   key === 'status' ? 'Status' :
-                   key === 'location' ? 'Lokasi' :
-                   key === 'contact' ? 'Kontak' : key}
+                  {getColumnLabel(key)}
                 </span>
               </label>
             ))}
@@ -347,7 +571,12 @@ export const FamilyTable: React.FC = () => {
               )}
               
               {visibleColumns.name && (
-                <SortableHeader field="name" className="w-48">
+                <SortableHeader 
+                  field="name" 
+                  className="w-48"
+                  sortConfig={sortConfig}
+                  onSort={handleSort}
+                >
                   Nama
                 </SortableHeader>
               )}
@@ -359,13 +588,23 @@ export const FamilyTable: React.FC = () => {
               )}
               
               {visibleColumns.birth && (
-                <SortableHeader field="birthDate" className="w-28">
+                <SortableHeader 
+                  field="birthDate" 
+                  className="w-28"
+                  sortConfig={sortConfig}
+                  onSort={handleSort}
+                >
                   Lahir
                 </SortableHeader>
               )}
               
               {visibleColumns.age && (
-                <SortableHeader field="age" className="w-20 text-right">
+                <SortableHeader 
+                  field="age" 
+                  className="w-20 text-right"
+                  sortConfig={sortConfig}
+                  onSort={handleSort}
+                >
                   Usia
                 </SortableHeader>
               )}
@@ -377,7 +616,12 @@ export const FamilyTable: React.FC = () => {
               )}
               
               {visibleColumns.location && (
-                <SortableHeader field="location" className="w-32">
+                <SortableHeader 
+                  field="location" 
+                  className="w-32"
+                  sortConfig={sortConfig}
+                  onSort={handleSort}
+                >
                   Lokasi
                 </SortableHeader>
               )}
@@ -435,166 +679,26 @@ export const FamilyTable: React.FC = () => {
           </thead>
 
           <tbody className="divide-y divide-gray-200">
-            {currentMembers.map((member, index) => {
+            {currentMembers.map((member: FamilyMember, index: number) => {
               const isSelected = selectedRows.has(member.id);
               const isHighlighted = selectedMember?.id === member.id;
-              const age = calculateAge(member.birthDate, member.deathDate);
               
               return (
-                <tr
+                <TableRow
                   key={member.id}
-                  className={`h-16 transition-colors cursor-pointer ${
-                    index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                  } ${
-                    isSelected ? 'bg-blue-100' : ''
-                  } ${
-                    isHighlighted ? 'bg-blue-200 ring-2 ring-blue-400' : ''
-                  } hover:bg-blue-50`}
-                  onClick={() => handleRowClick(member)}
-                >
-                  <td className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        handleRowSelect(member.id);
-                      }}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                  </td>
-
-                  {visibleColumns.photo && (
-                    <td className="px-4 py-3">
-                      <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200">
-                        {member.photoUrl ? (
-                          <img
-                            src={member.photoUrl}
-                            alt={member.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div 
-                            className={`w-full h-full flex items-center justify-center text-white text-sm font-bold ${
-                              member.gender === 'male' ? 'bg-blue-400' : 'bg-pink-400'
-                            }`}
-                          >
-                            {member.name.charAt(0)}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                  )}
-
-                  {visibleColumns.name && (
-                    <td className="px-4 py-3">
-                      <div>
-                        <div className="text-sm font-bold text-gray-900">
-                          {highlightText(member.name, searchQuery)}
-                        </div>
-                        {member.nickname && (
-                          <div className="text-xs text-gray-500 italic">
-                            "{highlightText(member.nickname, searchQuery)}"
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                  )}
-
-                  {visibleColumns.relationship && (
-                    <td className="px-4 py-3">
-                      <div className="flex items-center space-x-1">
-                        <Users className="w-3 h-3 text-gray-400" />
-                        <span className="text-sm text-gray-700">
-                          {getRelationshipText(member)}
-                        </span>
-                      </div>
-                    </td>
-                  )}
-
-                  {visibleColumns.birth && (
-                    <td className="px-4 py-3">
-                      <div className="text-sm text-gray-700">
-                        {new Date(member.birthDate).toLocaleDateString('id-ID', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric'
-                        })}
-                      </div>
-                    </td>
-                  )}
-
-                  {visibleColumns.age && (
-                    <td className="px-4 py-3 text-right">
-                      <div className={`text-sm font-medium ${
-                        member.isAlive ? 'text-gray-900' : 'text-gray-500'
-                      }`}>
-                        {age} thn {!member.isAlive && '✝'}
-                      </div>
-                    </td>
-                  )}
-
-                  {visibleColumns.status && (
-                    <td className="px-4 py-3 text-center">
-                      <div className="flex items-center justify-center space-x-1">
-                        <div className={`w-2 h-2 rounded-full ${
-                          member.isAlive ? 'bg-green-500' : 'bg-gray-500'
-                        }`} />
-                        <span className="text-xs text-gray-700">
-                          {member.isAlive ? 'Hidup' : 'Almarhum'}
-                        </span>
-                      </div>
-                    </td>
-                  )}
-
-                  {visibleColumns.location && (
-                    <td className="px-4 py-3">
-                      {member.currentLocation && (
-                        <div className="flex items-center space-x-1">
-                          <MapPin className="w-3 h-3 text-gray-400" />
-                          <span className="text-sm text-gray-700 truncate">
-                            {highlightText(member.currentLocation, searchQuery)}
-                          </span>
-                        </div>
-                      )}
-                    </td>
-                  )}
-
-                  {visibleColumns.contact && (
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-center space-x-1">
-                        {member.phone && (
-                          <button 
-                            onClick={(e) => e.stopPropagation()}
-                            className="p-1 text-green-600 hover:bg-green-100 rounded transition-colors"
-                            title="WhatsApp"
-                          >
-                            <Phone className="w-3 h-3" />
-                          </button>
-                        )}
-                        {member.email && (
-                          <button 
-                            onClick={(e) => e.stopPropagation()}
-                            className="p-1 text-blue-600 hover:bg-blue-100 rounded transition-colors"
-                            title="Email"
-                          >
-                            <Mail className="w-3 h-3" />
-                          </button>
-                        )}
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedMember(member);
-                          }}
-                          className="p-1 text-gray-600 hover:bg-gray-100 rounded transition-colors"
-                          title="Detail"
-                        >
-                          <Info className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </td>
-                  )}
-                </tr>
+                  member={member}
+                  index={index}
+                  isSelected={isSelected}
+                  isHighlighted={isHighlighted}
+                  searchQuery={searchQuery}
+                  visibleColumns={visibleColumns}
+                  onRowClick={handleRowClick}
+                  onRowSelect={handleRowSelect}
+                  onMemberSelect={setSelectedMember}
+                  calculateAge={calculateAge}
+                  getRelationshipText={getRelationshipText}
+                  highlightText={highlightText}
+                />
               );
             })}
           </tbody>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Users, Search, Plus, Link } from 'lucide-react';
+import { Users, Search } from 'lucide-react';
 import { FormData } from '../AddMemberModal';
-import { FamilyMember } from '@/types/family';
+import { FamilyMember } from '../../../types/family';
 
 interface RelationshipStepProps {
   formData: FormData;
@@ -17,7 +17,6 @@ export const RelationshipStep: React.FC<RelationshipStepProps> = ({
   members
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [showCreateNew, setShowCreateNew] = useState(false);
 
   const filteredMembers = members.filter(member =>
     member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -51,39 +50,43 @@ export const RelationshipStep: React.FC<RelationshipStepProps> = ({
 
       {/* Relationship Type */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">
-          Jenis Hubungan <span className="text-red-500">*</span>
-        </label>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {[
-            { value: 'child', label: 'Anak' },
-            { value: 'parent', label: 'Orang Tua' },
-            { value: 'sibling', label: 'Saudara' },
-            { value: 'spouse', label: 'Pasangan' },
-            { value: 'other', label: 'Lainnya' }
-          ].map(option => (
-            <label key={option.value} className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
-              <input
-                type="radio"
-                value={option.value}
-                checked={formData.relationshipType === option.value}
-                onChange={(e) => updateFormData({ relationshipType: e.target.value as any })}
-                className="mr-3 text-blue-600 focus:ring-blue-500"
-              />
-              <span className="text-sm font-medium text-gray-700">{option.label}</span>
-            </label>
-          ))}
-        </div>
+        <fieldset>
+          <legend className="block text-sm font-medium text-gray-700 mb-3">
+            Jenis Hubungan <span className="text-red-500">*</span>
+          </legend>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {[
+              { value: 'child', label: 'Anak' },
+              { value: 'parent', label: 'Orang Tua' },
+              { value: 'sibling', label: 'Saudara' },
+              { value: 'spouse', label: 'Pasangan' },
+              { value: 'other', label: 'Lainnya' }
+            ].map(option => (
+              <label key={option.value} className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                <input
+                  type="radio"
+                  name="relationshipType"
+                  value={option.value}
+                  checked={formData.relationshipType === option.value}
+                  onChange={(e) => updateFormData({ relationshipType: e.target.value as 'child' | 'parent' | 'sibling' | 'spouse' | 'other' })}
+                  className="mr-3 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-gray-700">{option.label}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
       </div>
 
       {/* Search Members */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label htmlFor="member-search" className="block text-sm font-medium text-gray-700 mb-2">
           Cari Anggota Keluarga
         </label>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
+            id="member-search"
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -96,9 +99,10 @@ export const RelationshipStep: React.FC<RelationshipStepProps> = ({
       {/* Parent Selection */}
       {(formData.relationshipType === 'child' || formData.relationshipType === 'other') && (
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            Orang Tua {formData.relationshipType === 'child' && <span className="text-red-500">*</span>}
-          </label>
+          <fieldset>
+            <legend className="block text-sm font-medium text-gray-700 mb-3">
+              Orang Tua {formData.relationshipType === 'child' && <span className="text-red-500">*</span>}
+            </legend>
           
           {selectedParents.length > 0 && (
             <div className="mb-3">
@@ -122,12 +126,21 @@ export const RelationshipStep: React.FC<RelationshipStepProps> = ({
           <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-md">
             {filteredMembers.length > 0 ? (
               filteredMembers.map(member => (
-                <div
+                <button
                   key={member.id}
-                  className={`p-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${
+                  type="button"
+                  className={`w-full p-3 border-b border-gray-100 text-left hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:outline-none ${
                     formData.parentIds.includes(member.id) ? 'bg-blue-50' : ''
                   }`}
                   onClick={() => handleParentSelect(member.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleParentSelect(member.id);
+                    }
+                  }}
+                  aria-pressed={formData.parentIds.includes(member.id)}
+                  aria-label={`${formData.parentIds.includes(member.id) ? 'Hapus' : 'Pilih'} ${member.name} sebagai orang tua`}
                 >
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
@@ -144,18 +157,11 @@ export const RelationshipStep: React.FC<RelationshipStepProps> = ({
                       </p>
                     </div>
                   </div>
-                </div>
+                </button>
               ))
             ) : (
               <div className="p-4 text-center text-gray-500">
                 <p className="text-sm">Tidak ada anggota ditemukan</p>
-                <button
-                  onClick={() => setShowCreateNew(true)}
-                  className="mt-2 flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-sm"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Buat anggota baru</span>
-                </button>
               </div>
             )}
           </div>
@@ -163,15 +169,17 @@ export const RelationshipStep: React.FC<RelationshipStepProps> = ({
           {errors.parentIds && (
             <p className="mt-1 text-sm text-red-600">{errors.parentIds}</p>
           )}
+          </fieldset>
         </div>
       )}
 
       {/* Spouse Selection */}
       {formData.relationshipType === 'spouse' && (
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            Pasangan <span className="text-red-500">*</span>
-          </label>
+          <fieldset>
+            <legend className="block text-sm font-medium text-gray-700 mb-3">
+              Pasangan <span className="text-red-500">*</span>
+            </legend>
           
           {selectedSpouse && (
             <div className="mb-3">
@@ -190,12 +198,21 @@ export const RelationshipStep: React.FC<RelationshipStepProps> = ({
 
           <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-md">
             {filteredMembers.filter(m => m.gender !== formData.gender).map(member => (
-              <div
+              <button
                 key={member.id}
-                className={`p-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${
+                type="button"
+                className={`w-full p-3 border-b border-gray-100 text-left hover:bg-gray-50 focus:ring-2 focus:ring-pink-500 focus:outline-none ${
                   formData.spouseId === member.id ? 'bg-pink-50' : ''
                 }`}
                 onClick={() => handleSpouseSelect(member.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleSpouseSelect(member.id);
+                  }
+                }}
+                aria-pressed={formData.spouseId === member.id}
+                aria-label={`${formData.spouseId === member.id ? 'Hapus' : 'Pilih'} ${member.name} sebagai pasangan`}
               >
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
@@ -212,13 +229,14 @@ export const RelationshipStep: React.FC<RelationshipStepProps> = ({
                     </p>
                   </div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
 
           {errors.spouseId && (
             <p className="mt-1 text-sm text-red-600">{errors.spouseId}</p>
           )}
+          </fieldset>
         </div>
       )}
 

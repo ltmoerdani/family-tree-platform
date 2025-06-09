@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Plus, Download, Printer, Share2, Map } from 'lucide-react';
-import { useFamilyStore } from '@/store/familyStore';
-import { AddMemberModal } from '@/components/Forms/AddMemberModal';
+import { Plus, Download, Printer, Share2 } from 'lucide-react';
+import { useFamilyStore } from '../../store/familyStore';
+import { AddMemberModal } from '../Forms/AddMemberModal';
 
 export const BottomNavigation: React.FC = () => {
   const { stats } = useFamilyStore();

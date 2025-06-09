@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { GridMemberCard } from './GridMemberCard';
-import { useFamilyStore } from '@/store/familyStore';
-import { FamilyMember } from '@/types/family';
+import { useFamilyStore } from '../../store/familyStore';
 import { ChevronDown, SortAsc, Filter } from 'lucide-react';
 
 type SortOption = 'name' | 'age' | 'location' | 'generation';
@@ -15,7 +14,7 @@ export const MemberCardGrid: React.FC = () => {
 
   // Filter and search members
   const filteredMembers = useMemo(() => {
-    let filtered = members.filter(member => {
+    const filtered = members.filter(member => {
       // Apply view mode filters
       if (!viewMode.showAlive && member.isAlive) return false;
       if (!viewMode.showDeceased && !member.isAlive) return false;
@@ -24,12 +23,14 @@ export const MemberCardGrid: React.FC = () => {
       // Apply search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
-        return (
-          member.name.toLowerCase().includes(query) ||
-          member.profession?.toLowerCase().includes(query) ||
-          member.currentLocation?.toLowerCase().includes(query) ||
-          member.nickname?.toLowerCase().includes(query)
-        );
+        const searchFields = [
+          member.name.toLowerCase(),
+          member.profession?.toLowerCase() ?? '',
+          member.currentLocation?.toLowerCase() ?? '',
+          member.nickname?.toLowerCase() ?? ''
+        ];
+        
+        return searchFields.some(field => field.includes(query));
       }
       
       return true;
@@ -43,13 +44,14 @@ export const MemberCardGrid: React.FC = () => {
         case 'name':
           comparison = a.name.localeCompare(b.name);
           break;
-        case 'age':
+        case 'age': {
           const ageA = new Date().getFullYear() - new Date(a.birthDate).getFullYear();
           const ageB = new Date().getFullYear() - new Date(b.birthDate).getFullYear();
           comparison = ageA - ageB;
           break;
+        }
         case 'location':
-          comparison = (a.currentLocation || '').localeCompare(b.currentLocation || '');
+          comparison = (a.currentLocation ?? '').localeCompare(b.currentLocation ?? '');
           break;
         case 'generation':
           comparison = a.generation - b.generation;
@@ -72,13 +74,23 @@ export const MemberCardGrid: React.FC = () => {
     setShowSortMenu(false);
   };
 
+  const getSortLabel = (sortOption: SortOption): string => {
+    switch (sortOption) {
+      case 'name': return 'Nama';
+      case 'age': return 'Usia';
+      case 'location': return 'Lokasi';
+      case 'generation': return 'Generasi';
+      default: return 'Nama';
+    }
+  };
+
   const highlightText = (text: string, query: string) => {
     if (!query) return text;
     
     const parts = text.split(new RegExp(`(${query})`, 'gi'));
     return parts.map((part, index) => 
       part.toLowerCase() === query.toLowerCase() ? (
-        <mark key={index} className="bg-yellow-200 px-1 rounded">
+        <mark key={`highlight-${part}-${index}`} className="bg-yellow-200 px-1 rounded">
           {part}
         </mark>
       ) : part
@@ -108,7 +120,7 @@ export const MemberCardGrid: React.FC = () => {
           >
             <SortAsc className="w-4 h-4" />
             <span className="text-sm">
-              Urutkan: {sortBy === 'name' ? 'Nama' : sortBy === 'age' ? 'Usia' : sortBy === 'location' ? 'Lokasi' : 'Generasi'}
+              Urutkan: {getSortLabel(sortBy)}
             </span>
             <ChevronDown className="w-4 h-4" />
           </button>
@@ -154,7 +166,7 @@ export const MemberCardGrid: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 lg:gap-6">
-          {filteredMembers.map(member => (
+          {filteredMembers.map((member) => (
             <GridMemberCard
               key={member.id}
               member={member}
