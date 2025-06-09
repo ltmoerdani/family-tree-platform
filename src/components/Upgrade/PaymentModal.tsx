@@ -156,8 +156,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               <p className="text-gray-700 mb-4">{currentPlan.description}</p>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {currentPlan.features.map((feature, index) => (
-                  <div key={index} className="flex items-center space-x-2">
+                {currentPlan.features.map((feature) => (
+                  <div key={feature} className="flex items-center space-x-2">
                     <Check className="w-4 h-4 text-green-600" />
                     <span className="text-sm text-gray-700">{feature}</span>
                   </div>
@@ -268,9 +268,19 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               />
               <span className="text-sm text-gray-700">
                 Saya setuju dengan{' '}
-                <a href="#" className="text-blue-600 hover:underline">Syarat & Ketentuan</a>
+                <a
+                  href="/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline"
+                >Syarat & Ketentuan</a>
                 {' '}dan{' '}
-                <a href="#" className="text-blue-600 hover:underline">Kebijakan Privasi</a>
+                <a
+                  href="/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline"
+                >Kebijakan Privasi</a>
               </span>
             </label>
 
@@ -347,7 +357,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               </div>
 
               <p className="text-sm text-gray-500 mt-4">
-                Butuh bantuan? <a href="#" className="text-blue-600 hover:underline">Chat dengan Success Team</a>
+                Butuh bantuan? <button type="button" className="text-blue-600 hover:underline bg-transparent border-none p-0 m-0 underline cursor-pointer" onClick={() => window.open('https://wa.me/6281234567890', '_blank', 'noopener,noreferrer')}>Chat dengan Success Team</button>
               </p>
             </div>
           </div>

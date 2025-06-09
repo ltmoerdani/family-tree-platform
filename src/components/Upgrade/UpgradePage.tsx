@@ -2,20 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { 
   Crown, 
   Check, 
-  X, 
   TreePine, 
   Users, 
   HardDrive, 
   Download, 
   UserPlus, 
   Shield, 
-  MessageCircle, 
   BarChart3,
   Star,
   Clock,
-  CreditCard,
-  Smartphone,
-  Building2,
   ArrowLeft,
   ChevronDown,
   ChevronUp
@@ -32,7 +27,7 @@ export const UpgradePage: React.FC = () => {
     minutes: 45,
     seconds: 12
   });
-  const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+  const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
 
   // Countdown timer
   useEffect(() => {
@@ -279,15 +274,15 @@ export const UpgradePage: React.FC = () => {
                 { feature: 'Backup Otomatis', free: 'Tidak ada', premium: 'Harian 🔄' },
                 { feature: 'Support', free: 'Email', premium: 'Priority Chat 💬' },
                 { feature: 'Analytics', free: 'Tidak ada', premium: 'Family Insights 📈' }
-              ].map((row, index) => (
-                <React.Fragment key={index}>
-                  <div className="p-4 border-r border-gray-200 border-t border-gray-100">
+              ].map((row) => (
+                <React.Fragment key={row.feature}>
+                  <div className="p-4 border-r border-gray-200 border-t">
                     <span className="font-medium text-gray-900">{row.feature}</span>
                   </div>
-                  <div className="p-4 border-r border-gray-200 border-t border-gray-100 text-center">
+                  <div className="p-4 border-r border-gray-200 border-t text-center">
                     <span className="text-gray-600">{row.free}</span>
                   </div>
-                  <div className="p-4 border-t border-gray-100 text-center">
+                  <div className="p-4 border-t text-center">
                     <span className="font-medium text-green-600">{row.premium}</span>
                   </div>
                 </React.Fragment>
@@ -306,8 +301,8 @@ export const UpgradePage: React.FC = () => {
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {benefits.map((benefit, index) => (
-              <div key={index} className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow">
+            {benefits.map((benefit) => (
+              <div key={benefit.title} className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow">
                 <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
                   <benefit.icon className="w-6 h-6 text-blue-600" />
                 </div>
@@ -328,11 +323,11 @@ export const UpgradePage: React.FC = () => {
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-white rounded-xl p-6 shadow-lg">
+            {testimonials.map((testimonial) => (
+              <div key={testimonial.text} className="bg-white rounded-xl p-6 shadow-lg">
                 <div className="flex items-center mb-4">
                   {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
+                    <Star key={`star-${testimonial.text}-${i}`} className="w-5 h-5 text-yellow-400 fill-current" />
                   ))}
                 </div>
                 <blockquote className="text-gray-700 mb-4 italic">
@@ -404,20 +399,20 @@ export const UpgradePage: React.FC = () => {
           </h2>
 
           <div className="max-w-3xl mx-auto space-y-4">
-            {faqs.map((faq, index) => (
-              <div key={index} className="bg-white rounded-xl shadow-lg overflow-hidden">
+            {faqs.map((faq) => (
+              <div key={faq.question} className="bg-white rounded-xl shadow-lg overflow-hidden">
                 <button
-                  onClick={() => setExpandedFaq(expandedFaq === index ? null : index)}
+                  onClick={() => setExpandedFaq(expandedFaq === faq.question ? null : faq.question)}
                   className="w-full p-6 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
                 >
                   <h3 className="font-semibold text-gray-900">{faq.question}</h3>
-                  {expandedFaq === index ? (
+                  {expandedFaq === faq.question ? (
                     <ChevronUp className="w-5 h-5 text-gray-500" />
                   ) : (
                     <ChevronDown className="w-5 h-5 text-gray-500" />
                   )}
                 </button>
-                {expandedFaq === index && (
+                {expandedFaq === faq.question && (
                   <div className="px-6 pb-6">
                     <p className="text-gray-700 leading-relaxed">{faq.answer}</p>
                   </div>

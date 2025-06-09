@@ -1,18 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Users, Calendar, Settings, Eye, List, Grid3X3, Crown, TreePine } from 'lucide-react';
+import { Plus, Users, Calendar, Settings, List, Grid3X3, Crown, TreePine } from 'lucide-react';
 import { CreateFamilyTreeModal } from './CreateFamilyTreeModal';
 import { useAuthStore } from '../../store/authStore';
 import { useDashboardStore } from '../../store/dashboardStore';
-
-interface FamilyTree {
-  id: string;
-  name: string;
-  memberCount: number;
-  generationCount: number;
-  lastUpdated: string;
-  createdAt: string;
-  thumbnail?: string;
-}
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuthStore();
@@ -61,6 +51,43 @@ export const Dashboard: React.FC = () => {
     });
   };
 
+  // Helper: Render the create new card button
+  const renderCreateNewCard = () => (
+    <button
+      type="button"
+      onClick={canCreateNewTree ? handleCreateTree : handleUpgrade}
+      className={`group relative bg-white rounded-xl border-2 border-dashed transition-all duration-200 h-48 flex flex-col items-center justify-center cursor-pointer ${
+        canCreateNewTree
+          ? 'border-gray-300 hover:border-green-500 hover:bg-green-50'
+          : 'border-gray-200 bg-gray-50 hover:border-blue-500 hover:bg-blue-50'
+      }`}
+      aria-label={canCreateNewTree ? 'Buat Family Tree Baru' : 'Upgrade ke Premium untuk membuat pohon keluarga baru'}
+    >
+      {canCreateNewTree ? (
+        <>
+          <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-green-200 transition-colors">
+            <Plus className="w-6 h-6 text-green-600" />
+          </div>
+          <h3 className="font-semibold text-gray-900 mb-1">Buat Family Tree Baru</h3>
+          <p className="text-sm text-gray-500 text-center px-4">
+            Mulai membangun pohon keluarga baru
+          </p>
+        </>
+      ) : (
+        <>
+          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-blue-200 transition-colors">
+            <Crown className="w-6 h-6 text-blue-600" />
+          </div>
+          <h3 className="font-semibold text-gray-700 mb-1">Upgrade untuk Family Tree Unlimited</h3>
+          <p className="text-sm text-gray-500 text-center px-4">
+            Akun gratis terbatas 1 family tree
+          </p>
+          <p className="text-xs text-blue-600 font-medium mt-2">Klik untuk upgrade</p>
+        </>
+      )}
+    </button>
+  );
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Upgrade Success Notification */}
@@ -75,8 +102,10 @@ export const Dashboard: React.FC = () => {
             <button
               onClick={() => setShowUpgradeSuccess(false)}
               className="text-white hover:text-gray-200"
+              aria-label="Tutup notifikasi upgrade"
             >
-              <X className="w-5 h-5" />
+              {/* Use lucide-react X icon safely */}
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
         </div>
@@ -216,37 +245,7 @@ export const Dashboard: React.FC = () => {
           {viewMode === 'card' ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {/* Create New Card */}
-              <div
-                onClick={canCreateNewTree ? handleCreateTree : handleUpgrade}
-                className={`group relative bg-white rounded-xl border-2 border-dashed transition-all duration-200 h-48 flex flex-col items-center justify-center cursor-pointer ${
-                  canCreateNewTree
-                    ? 'border-gray-300 hover:border-green-500 hover:bg-green-50'
-                    : 'border-gray-200 bg-gray-50 hover:border-blue-500 hover:bg-blue-50'
-                }`}
-              >
-                {canCreateNewTree ? (
-                  <>
-                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-green-200 transition-colors">
-                      <Plus className="w-6 h-6 text-green-600" />
-                    </div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Buat Family Tree Baru</h3>
-                    <p className="text-sm text-gray-500 text-center px-4">
-                      Mulai membangun pohon keluarga baru
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-blue-200 transition-colors">
-                      <Crown className="w-6 h-6 text-blue-600" />
-                    </div>
-                    <h3 className="font-semibold text-gray-700 mb-1">Upgrade untuk Family Tree Unlimited</h3>
-                    <p className="text-sm text-gray-500 text-center px-4">
-                      Akun gratis terbatas 1 family tree
-                    </p>
-                    <p className="text-xs text-blue-600 font-medium mt-2">Klik untuk upgrade</p>
-                  </>
-                )}
-              </div>
+              {renderCreateNewCard()}
 
               {/* Existing Family Trees */}
               {familyTrees.map((tree) => (

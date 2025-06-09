@@ -38,7 +38,7 @@ const mockFamilyTrees: FamilyTree[] = [
 
 export const useDashboardStore = create<DashboardState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       familyTrees: mockFamilyTrees,
       viewMode: 'card',
       isPremium: false,

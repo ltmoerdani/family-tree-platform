@@ -47,6 +47,7 @@ export const CreateFamilyTreeModal: React.FC<CreateFamilyTreeModalProps> = ({
       // Navigate to the new family tree
       window.location.href = `/family-tree/${newTree.id}`;
     } catch (err) {
+      console.error('Error creating family tree:', err);
       setError('Gagal membuat family tree. Silakan coba lagi.');
     } finally {
       setIsCreating(false);

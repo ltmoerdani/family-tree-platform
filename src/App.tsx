@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { ProtectedRoute } from './components/Auth/ProtectedRoute';
 import { Dashboard } from './components/Dashboard/Dashboard';
 import { UpgradePage } from './components/Upgrade/UpgradePage';
-import { FamilyTreeRouter } from './components/FamilyTree/FamilyTreeRouter';
 import { Header } from './components/Header/Header';
 import { Toolbar } from './components/Toolbar/Toolbar';
 import { StatsSidebar } from './components/Sidebar/StatsSidebar';
@@ -59,11 +58,10 @@ function App() {
 
   return (
     <ProtectedRoute>
-      {currentView === 'dashboard' ? (
-        <Dashboard />
-      ) : currentView === 'upgrade' ? (
-        <UpgradePage />
-      ) : (
+      {/* Refactored nested ternary to independent statements */}
+      {currentView === 'dashboard' && <Dashboard />}
+      {currentView === 'upgrade' && <UpgradePage />}
+      {currentView === 'family-tree' && (
         <div className="h-screen flex flex-col bg-gray-50">
           {/* Header */}
           <Header onMenuToggle={handleMenuToggle} familyName={user?.familyName ?? "Keluarga"} />
