@@ -1,0 +1,333 @@
+import React, { useState } from 'react';
+import { FamilyMember } from '@/types/family';
+import { useFamilyStore } from '@/store/familyStore';
+import { 
+  Plus, 
+  ArrowUp, 
+  ArrowDown, 
+  ArrowLeft, 
+  ArrowRight,
+  Edit,
+  Trash2,
+  Copy,
+  Move
+} from 'lucide-react';
+import { RelationshipSelectionModal } from './RelationshipSelectionModal';
+import { AddMemberModal } from '@/components/Forms/AddMemberModal';
+
+interface EditableMemberCardProps {
+  member: FamilyMember;
+  position: { x: number; y: number };
+}
+
+type Direction = 'up' | 'down' | 'left' | 'right';
+
+export const EditableMemberCard: React.FC<EditableMemberCardProps> = ({ 
+  member, 
+  position 
+}) => {
+  const { setSelectedMember, selectedMember, editMode } = useFamilyStore();
+  const [showRelationshipModal, setShowRelationshipModal] = useState(false);
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedDirection, setSelectedDirection] = useState<Direction>('up');
+  const [selectedRelationship, setSelectedRelationship] = useState<string>('');
+  const [showContextMenu, setShowContextMenu] = useState(false);
+  const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
+
+  const handleClick = () => {
+    if (editMode) {
+      setShowEditModal(true);
+    } else {
+      setSelectedMember(member);
+    }
+  };
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    if (!editMode) return;
+    
+    e.preventDefault();
+    setContextMenuPosition({ x: e.clientX, y: e.clientY });
+    setShowContextMenu(true);
+  };
+
+  const handleDirectionalAdd = (direction: Direction) => {
+    setSelectedDirection(direction);
+    setShowRelationshipModal(true);
+  };
+
+  const handleRelationshipSelect = (relationship: string) => {
+    setSelectedRelationship(relationship);
+    setShowRelationshipModal(false);
+    setShowAddMemberModal(true);
+  };
+
+  const getBirthYear = () => {
+    return new Date(member.birthDate).getFullYear();
+  };
+
+  const getDeathYear = () => {
+    return member.deathDate ? new Date(member.deathDate).getFullYear() : null;
+  };
+
+  const getYearDisplay = () => {
+    const birthYear = getBirthYear();
+    const deathYear = getDeathYear();
+    
+    if (deathYear) {
+      return `(${birthYear}-${deathYear})`;
+    }
+    return `(${birthYear})`;
+  };
+
+  const isSelected = selectedMember?.id === member.id;
+
+  const DirectionalPlusButton: React.FC<{
+    direction: Direction;
+    icon: React.ReactNode;
+    tooltip: string;
+    className: string;
+  }> = ({ direction, icon, tooltip, className }) => (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        handleDirectionalAdd(direction);
+      }}
+      className={`absolute w-6 h-6 bg-white border-2 border-blue-500 rounded-full flex items-center justify-center text-blue-600 hover:bg-blue-50 hover:scale-110 transition-all duration-200 shadow-md hover:shadow-lg group ${className}`}
+      title={tooltip}
+    >
+      {icon}
+      <div className="absolute invisible group-hover:visible bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-50 -top-8 left-1/2 transform -translate-x-1/2">
+        {tooltip}
+      </div>
+    </button>
+  );
+
+  return (
+    <>
+      <div
+        className={`absolute cursor-pointer transition-all duration-200 ${
+          editMode ? 'hover:scale-105' : 'transform hover:scale-105 hover:z-10'
+        } ${
+          isSelected ? 'z-20 scale-105' : ''
+        }`}
+        style={{
+          left: position.x,
+          top: position.y,
+          transform: `translate(-50%, -50%)`,
+        }}
+        onClick={handleClick}
+        onContextMenu={handleContextMenu}
+      >
+        <div
+          className={`w-40 bg-white rounded-lg shadow-md hover:shadow-lg border-2 transition-all duration-200 ${
+            editMode 
+              ? 'border-blue-500 bg-blue-50 border-4 cursor-pointer' 
+              : member.gender === 'male' 
+                ? 'border-blue-200 hover:border-blue-400' 
+                : 'border-pink-200 hover:border-pink-400'
+          } ${
+            isSelected 
+              ? member.gender === 'male' 
+                ? 'border-blue-500 shadow-lg' 
+                : 'border-pink-500 shadow-lg'
+              : ''
+          } ${
+            !member.isAlive ? 'border-gray-400 bg-gray-50' : ''
+          }`}
+        >
+          {/* Status Indicators */}
+          <div className="absolute -top-2 -right-2 flex space-x-1">
+            {member.maritalStatus === 'married' && (
+              <div className="w-4 h-4 bg-yellow-400 rounded-full border-2 border-white flex items-center justify-center">
+                <span className="text-xs">💍</span>
+              </div>
+            )}
+            {!member.isAlive && (
+              <div className="w-4 h-4 bg-gray-600 rounded-full border-2 border-white flex items-center justify-center">
+                <span className="text-xs text-white">✕</span>
+              </div>
+            )}
+          </div>
+
+          {/* Directional Plus Icons - Only in Edit Mode */}
+          {editMode && (
+            <>
+              {/* Plus Up - Add Parent */}
+              <DirectionalPlusButton
+                direction="up"
+                icon={<ArrowUp className="w-3 h-3" />}
+                tooltip="Tambah Orang Tua"
+                className="-top-3 left-1/2 transform -translate-x-1/2"
+              />
+
+              {/* Plus Down - Add Child */}
+              <DirectionalPlusButton
+                direction="down"
+                icon={<ArrowDown className="w-3 h-3" />}
+                tooltip="Tambah Anak/Keturunan"
+                className="-bottom-3 left-1/2 transform -translate-x-1/2"
+              />
+
+              {/* Plus Left - Add Spouse (Left) */}
+              <DirectionalPlusButton
+                direction="left"
+                icon={<ArrowLeft className="w-3 h-3" />}
+                tooltip="Tambah Pasangan (Kiri)"
+                className="-left-3 top-1/2 transform -translate-y-1/2"
+              />
+
+              {/* Plus Right - Add Spouse (Right) */}
+              <DirectionalPlusButton
+                direction="right"
+                icon={<ArrowRight className="w-3 h-3" />}
+                tooltip="Tambah Pasangan (Kanan)"
+                className="-right-3 top-1/2 transform -translate-y-1/2"
+              />
+            </>
+          )}
+
+          {/* Photo */}
+          <div className="p-4 pb-2">
+            <div className="w-20 h-20 mx-auto rounded-full overflow-hidden bg-gray-200">
+              {member.photoUrl ? (
+                <img
+                  src={member.photoUrl}
+                  alt={member.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div 
+                  className={`w-full h-full flex items-center justify-center text-white text-2xl font-bold ${
+                    member.gender === 'male' ? 'bg-blue-400' : 'bg-pink-400'
+                  }`}
+                >
+                  {member.name.charAt(0)}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Info */}
+          <div className="px-4 pb-4 text-center">
+            <h3 className="font-bold text-gray-900 text-sm leading-tight mb-1">
+              {member.name}
+            </h3>
+            <p className="text-xs text-gray-600">
+              {getYearDisplay()}
+            </p>
+            {member.profession && (
+              <p className="text-xs text-gray-500 mt-1 truncate">
+                {member.profession}
+              </p>
+            )}
+          </div>
+
+          {/* Generation Indicator */}
+          <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2">
+            <div className={`w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center text-white ${
+              member.gender === 'male' ? 'bg-blue-500' : 'bg-pink-500'
+            }`}>
+              {member.generation}
+            </div>
+          </div>
+
+          {/* Edit Mode Overlay */}
+          {editMode && (
+            <div className="absolute inset-0 bg-blue-100 bg-opacity-20 rounded-lg pointer-events-none" />
+          )}
+        </div>
+      </div>
+
+      {/* Context Menu */}
+      {showContextMenu && editMode && (
+        <>
+          <div 
+            className="fixed inset-0 z-40" 
+            onClick={() => setShowContextMenu(false)}
+          />
+          <div 
+            className="fixed bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-50 min-w-48"
+            style={{
+              left: contextMenuPosition.x,
+              top: contextMenuPosition.y,
+            }}
+          >
+            <button 
+              onClick={() => {
+                setShowEditModal(true);
+                setShowContextMenu(false);
+              }}
+              className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors flex items-center space-x-2"
+            >
+              <Edit className="w-4 h-4" />
+              <span>Edit</span>
+            </button>
+
+            <button 
+              onClick={() => {
+                // Handle duplicate
+                setShowContextMenu(false);
+              }}
+              className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors flex items-center space-x-2"
+            >
+              <Copy className="w-4 h-4" />
+              <span>Duplikasi</span>
+            </button>
+
+            <button 
+              onClick={() => {
+                // Handle move
+                setShowContextMenu(false);
+              }}
+              className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors flex items-center space-x-2"
+            >
+              <Move className="w-4 h-4" />
+              <span>Pindahkan</span>
+            </button>
+            
+            <hr className="my-2" />
+            
+            <button 
+              onClick={() => {
+                if (confirm('Yakin ingin menghapus anggota ini?')) {
+                  // Handle delete
+                }
+                setShowContextMenu(false);
+              }}
+              className="w-full text-left px-4 py-2 text-sm hover:bg-red-50 text-red-600 transition-colors flex items-center space-x-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Hapus</span>
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* Modals */}
+      <RelationshipSelectionModal
+        isOpen={showRelationshipModal}
+        onClose={() => setShowRelationshipModal(false)}
+        direction={selectedDirection}
+        onSelect={handleRelationshipSelect}
+      />
+
+      <AddMemberModal
+        isOpen={showAddMemberModal}
+        onClose={() => setShowAddMemberModal(false)}
+        preselectedParent={selectedDirection === 'down' ? member : undefined}
+        relationshipContext={{
+          direction: selectedDirection,
+          relationship: selectedRelationship,
+          relativeTo: member
+        }}
+      />
+
+      <AddMemberModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        editingMember={member}
+      />
+    </>
+  );
+};

@@ -12,6 +12,11 @@ interface AddMemberModalProps {
   onClose: () => void;
   editingMember?: FamilyMember | null;
   preselectedParent?: FamilyMember | null;
+  relationshipContext?: {
+    direction: 'up' | 'down' | 'left' | 'right';
+    relationship: string;
+    relativeTo: FamilyMember;
+  };
 }
 
 export interface FormData {
@@ -73,9 +78,10 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
   isOpen,
   onClose,
   editingMember,
-  preselectedParent
+  preselectedParent,
+  relationshipContext
 }) => {
-  const { addMember, updateMember, members } = useFamilyStore();
+  const { addMember, updateMember, members, setHasUnsavedChanges } = useFamilyStore();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -119,20 +125,50 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
         });
         setCurrentStep(1);
       } else {
-        setFormData(initialFormData);
+        let newFormData = { ...initialFormData };
+        
+        // Handle preselected parent
         if (preselectedParent) {
-          setFormData(prev => ({
-            ...prev,
-            parentIds: [preselectedParent.id],
-            relationshipType: 'child'
-          }));
+          newFormData.parentIds = [preselectedParent.id];
+          newFormData.relationshipType = 'child';
         }
+        
+        // Handle relationship context from directional plus
+        if (relationshipContext) {
+          const { direction, relationship, relativeTo } = relationshipContext;
+          
+          // Auto-fill gender based on relationship
+          if (relationship === 'father' || relationship === 'husband') {
+            newFormData.gender = 'male';
+          } else if (relationship === 'mother' || relationship === 'wife') {
+            newFormData.gender = 'female';
+          }
+          
+          // Set relationship type and connections
+          switch (direction) {
+            case 'up':
+              newFormData.relationshipType = 'parent';
+              // Add this member as child of the new member
+              break;
+            case 'down':
+              newFormData.relationshipType = 'child';
+              newFormData.parentIds = [relativeTo.id];
+              break;
+            case 'left':
+            case 'right':
+              newFormData.relationshipType = 'spouse';
+              newFormData.spouseId = relativeTo.id;
+              break;
+          }
+        }
+        
+        setFormData(newFormData);
         setCurrentStep(1);
       }
       setErrors({});
       setIsDraft(false);
     }
-  }, [isOpen, editingMember, preselectedParent]);
+  }, [isOpen, editingMember, preselectedParent, relationshipContext]);
 
   const validateStep = (step: number): boolean => {
     const newErrors: Record<string, string> = {};
@@ -189,6 +225,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
 
   const handleSaveDraft = async () => {
     setIsDraft(true);
+    setHasUnsavedChanges(true);
     // In a real app, save to localStorage or backend
     console.log('Draft saved:', formData);
   };
@@ -230,6 +267,8 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
         addMember(newMember);
       }
 
+      // Show success animation
+      setHasUnsavedChanges(false);
       onClose();
     } catch (error) {
       console.error('Error saving member:', error);
@@ -243,11 +282,21 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
       const parent = members.find(m => m.id === formData.parentIds[0]);
       return parent ? parent.generation + 1 : 1;
     }
+    if (relationshipContext?.direction === 'up') {
+      return relationshipContext.relativeTo.generation - 1;
+    }
+    if (relationshipContext?.direction === 'down') {
+      return relationshipContext.relativeTo.generation + 1;
+    }
+    if (relationshipContext?.direction === 'left' || relationshipContext?.direction === 'right') {
+      return relationshipContext.relativeTo.generation;
+    }
     return 1;
   };
 
   const updateFormData = (updates: Partial<FormData>) => {
     setFormData(prev => ({ ...prev, ...updates }));
+    setHasUnsavedChanges(true);
   };
 
   if (!isOpen) return null;
@@ -256,12 +305,14 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-300">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div>
             <h2 className="text-xl font-bold text-gray-900">
-              {editingMember ? 'Edit Anggota Keluarga' : 'Tambah Anggota Keluarga'}
+              {editingMember ? 'Edit Anggota Keluarga' : 
+               relationshipContext ? `Tambah ${getRelationshipTitle()}` : 
+               'Tambah Anggota Keluarga'}
             </h2>
             <p className="text-sm text-gray-600 mt-1">
               {steps[currentStep - 1].title}
@@ -285,11 +336,11 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
               
               return (
                 <div key={step.number} className="flex items-center">
-                  <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 transition-colors ${
+                  <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 transition-all duration-200 ${
                     isCompleted 
-                      ? 'bg-green-500 border-green-500 text-white' 
+                      ? 'bg-green-500 border-green-500 text-white scale-110' 
                       : isActive 
-                        ? 'bg-blue-500 border-blue-500 text-white' 
+                        ? 'bg-blue-500 border-blue-500 text-white scale-110' 
                         : 'border-gray-300 text-gray-400'
                   }`}>
                     {isCompleted ? (
@@ -299,14 +350,14 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
                     )}
                   </div>
                   <div className="ml-2 hidden sm:block">
-                    <div className={`text-sm font-medium ${
+                    <div className={`text-sm font-medium transition-colors ${
                       isActive ? 'text-blue-600' : isCompleted ? 'text-green-600' : 'text-gray-400'
                     }`}>
                       {step.title}
                     </div>
                   </div>
                   {index < steps.length - 1 && (
-                    <div className={`w-8 h-0.5 mx-4 ${
+                    <div className={`w-8 h-0.5 mx-4 transition-colors duration-300 ${
                       isCompleted ? 'bg-green-500' : 'bg-gray-300'
                     }`} />
                   )}
@@ -361,9 +412,12 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
                 <button
                   onClick={handleSubmit}
                   disabled={isSubmitting}
-                  className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors"
+                  className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors flex items-center space-x-2"
                 >
-                  {isSubmitting ? 'Menyimpan...' : editingMember ? 'Update' : 'Simpan'}
+                  {isSubmitting && (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  )}
+                  <span>{isSubmitting ? 'Menyimpan...' : editingMember ? 'Update' : 'Simpan'}</span>
                 </button>
                 
                 {!editingMember && (
@@ -386,7 +440,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
 
         {/* Draft Saved Notification */}
         {isDraft && (
-          <div className="absolute top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-2 rounded-md">
+          <div className="absolute top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-2 rounded-md animate-in slide-in-from-top-2 duration-300">
             <div className="flex items-center space-x-2">
               <Check className="w-4 h-4" />
               <span className="text-sm">Draft tersimpan</span>
@@ -396,4 +450,21 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
       </div>
     </div>
   );
+
+  function getRelationshipTitle(): string {
+    if (!relationshipContext) return '';
+    
+    const { relationship } = relationshipContext;
+    const relationshipTitles: Record<string, string> = {
+      'father': 'Ayah',
+      'mother': 'Ibu',
+      'husband': 'Suami',
+      'wife': 'Istri',
+      'biological_child': 'Anak Kandung',
+      'adopted_child': 'Anak Adopsi',
+      'grandchild': 'Cucu'
+    };
+    
+    return relationshipTitles[relationship] || 'Anggota Keluarga';
+  }
 };

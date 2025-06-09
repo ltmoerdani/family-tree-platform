@@ -1,11 +1,12 @@
 import React, { useRef, useEffect, useState } from 'react';
+import { EditableMemberCard } from './EditableMemberCard';
 import { MemberCard } from './MemberCard';
 import { useFamilyStore } from '@/store/familyStore';
 import { FamilyMember } from '@/types/family';
 
 export const TreeCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLDivElement>(null);
-  const { members, viewMode } = useFamilyStore();
+  const { members, viewMode, editMode, setEditMode } = useFamilyStore();
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
   
   // Calculate positions for family members
@@ -59,6 +60,13 @@ export const TreeCanvas: React.FC = () => {
     return () => window.removeEventListener('resize', updateCanvasSize);
   }, []);
 
+  // Handle click on empty area to exit edit mode
+  const handleCanvasClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget && editMode) {
+      setEditMode(false);
+    }
+  };
+
   // Filter members based on view settings
   const filteredMembers = members.filter(member => {
     if (!viewMode.showAlive && member.isAlive) return false;
@@ -70,7 +78,9 @@ export const TreeCanvas: React.FC = () => {
   return (
     <div 
       ref={canvasRef}
-      className="flex-1 bg-gray-50 relative overflow-auto"
+      className={`flex-1 bg-gray-50 relative overflow-auto transition-all duration-200 ${
+        editMode ? 'bg-blue-25' : ''
+      }`}
       style={{
         backgroundImage: `
           linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
@@ -80,6 +90,7 @@ export const TreeCanvas: React.FC = () => {
         transform: `scale(${viewMode.zoom / 100})`,
         transformOrigin: 'top left',
       }}
+      onClick={handleCanvasClick}
     >
       {/* Connection Lines SVG */}
       <svg 
@@ -141,7 +152,13 @@ export const TreeCanvas: React.FC = () => {
         const position = positions[member.id];
         if (!position) return null;
 
-        return (
+        return editMode ? (
+          <EditableMemberCard
+            key={member.id}
+            member={member}
+            position={position}
+          />
+        ) : (
           <MemberCard
             key={member.id}
             member={member}
@@ -159,7 +176,11 @@ export const TreeCanvas: React.FC = () => {
       ).map(generation => (
         <div
           key={`gen-${generation}`}
-          className="absolute left-4 bg-white px-3 py-1 rounded-full shadow-sm border text-sm font-medium text-gray-600"
+          className={`absolute left-4 px-3 py-1 rounded-full shadow-sm border text-sm font-medium transition-colors ${
+            editMode 
+              ? 'bg-blue-100 border-blue-300 text-blue-800' 
+              : 'bg-white border-gray-300 text-gray-600'
+          }`}
           style={{
             top: 120 + ((parseInt(generation) - 1) * 250),
           }}
@@ -167,6 +188,24 @@ export const TreeCanvas: React.FC = () => {
           Generasi {generation}
         </div>
       ))}
+
+      {/* Edit Mode Overlay Instructions */}
+      {editMode && filteredMembers.length === 0 && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-center p-8 bg-white rounded-lg shadow-lg border-2 border-blue-200">
+            <div className="text-4xl mb-4">👨‍👩‍👧‍👦</div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Mode Edit Aktif
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Mulai membangun pohon keluarga dengan menambahkan anggota pertama
+            </p>
+            <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+              Tambah Anggota Pertama
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

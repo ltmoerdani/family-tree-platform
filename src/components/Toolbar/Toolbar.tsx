@@ -1,9 +1,9 @@
 import React from 'react';
-import { Eye, Grid, List, ZoomIn, ZoomOut, Maximize, Filter } from 'lucide-react';
+import { Eye, Grid, List, ZoomIn, ZoomOut, Maximize, Filter, Edit3, Save, X } from 'lucide-react';
 import { useFamilyStore } from '@/store/familyStore';
 
 export const Toolbar: React.FC = () => {
-  const { viewMode, setViewMode } = useFamilyStore();
+  const { viewMode, setViewMode, editMode, setEditMode, hasUnsavedChanges } = useFamilyStore();
 
   const handleViewChange = (type: 'tree' | 'card' | 'list') => {
     setViewMode({ type });
@@ -16,6 +16,16 @@ export const Toolbar: React.FC = () => {
 
   const handleFitScreen = () => {
     setViewMode({ zoom: 100 });
+  };
+
+  const handleEditModeToggle = () => {
+    if (editMode && hasUnsavedChanges) {
+      if (confirm('Anda memiliki perubahan yang belum disimpan. Yakin ingin keluar dari mode edit?')) {
+        setEditMode(false);
+      }
+    } else {
+      setEditMode(!editMode);
+    }
   };
 
   const isZoomDisabled = viewMode.type !== 'tree';
@@ -61,6 +71,36 @@ export const Toolbar: React.FC = () => {
             </div>
           </div>
 
+          {/* Edit Mode Toggle - Only for Tree View */}
+          {viewMode.type === 'tree' && (
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-medium text-gray-700">Mode:</span>
+              <button
+                onClick={handleEditModeToggle}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg border-2 transition-all duration-200 ${
+                  editMode
+                    ? 'bg-blue-600 border-blue-600 text-white shadow-md'
+                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                {editMode ? (
+                  <>
+                    <Edit3 className="w-4 h-4" />
+                    <span className="font-medium">Edit Mode</span>
+                    {hasUnsavedChanges && (
+                      <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-4 h-4" />
+                    <span>View Mode</span>
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+
           {/* Filter */}
           <div className="flex items-center space-x-2">
             <span className="text-sm font-medium text-gray-700">Filter:</span>
@@ -102,6 +142,27 @@ export const Toolbar: React.FC = () => {
 
         {/* Zoom Controls - Only for Tree View */}
         <div className="flex items-center space-x-4">
+          {/* Edit Mode Actions */}
+          {editMode && (
+            <div className="flex items-center space-x-2 mr-4">
+              <button
+                onClick={() => {/* Handle save all changes */}}
+                className="flex items-center space-x-1 px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+              >
+                <Save className="w-4 h-4" />
+                <span>Simpan Semua</span>
+              </button>
+              
+              <button
+                onClick={() => setEditMode(false)}
+                className="flex items-center space-x-1 px-3 py-1.5 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+              >
+                <X className="w-4 h-4" />
+                <span>Keluar Edit</span>
+              </button>
+            </div>
+          )}
+
           <div className={`flex items-center space-x-2 ${isZoomDisabled ? 'opacity-50' : ''}`}>
             <button
               onClick={() => handleZoomChange(-25)}
@@ -149,6 +210,23 @@ export const Toolbar: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Edit Mode Info Bar */}
+      {editMode && (
+        <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Edit3 className="w-4 h-4 text-blue-600" />
+              <span className="text-sm font-medium text-blue-800">
+                Mode Edit Aktif - Klik card untuk edit, gunakan ikon + untuk menambah anggota
+              </span>
+            </div>
+            <div className="text-xs text-blue-600">
+              Tip: Klik area kosong untuk keluar dari mode edit
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

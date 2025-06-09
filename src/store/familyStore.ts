@@ -8,6 +8,8 @@ interface FamilyStore {
   viewMode: ViewMode;
   treePosition: TreePosition;
   stats: FamilyStats;
+  editMode: boolean;
+  hasUnsavedChanges: boolean;
   
   // Actions
   setMembers: (members: FamilyMember[]) => void;
@@ -15,6 +17,8 @@ interface FamilyStore {
   setSearchQuery: (query: string) => void;
   setViewMode: (mode: Partial<ViewMode>) => void;
   setTreePosition: (position: Partial<TreePosition>) => void;
+  setEditMode: (enabled: boolean) => void;
+  setHasUnsavedChanges: (hasChanges: boolean) => void;
   updateStats: () => void;
   addMember: (member: FamilyMember) => void;
   updateMember: (id: string, updates: Partial<FamilyMember>) => void;
@@ -37,6 +41,8 @@ export const useFamilyStore = create<FamilyStore>((set, get) => ({
     y: 0,
     scale: 1,
   },
+  editMode: false,
+  hasUnsavedChanges: false,
   stats: {
     totalMembers: 0,
     totalGenerations: 0,
@@ -67,6 +73,10 @@ export const useFamilyStore = create<FamilyStore>((set, get) => ({
   setTreePosition: (position) => set((state) => ({
     treePosition: { ...state.treePosition, ...position }
   })),
+
+  setEditMode: (enabled) => set({ editMode: enabled }),
+
+  setHasUnsavedChanges: (hasChanges) => set({ hasUnsavedChanges: hasChanges }),
 
   updateStats: () => {
     const { members } = get();
@@ -109,7 +119,7 @@ export const useFamilyStore = create<FamilyStore>((set, get) => ({
 
   addMember: (member) => {
     const members = [...get().members, member];
-    set({ members });
+    set({ members, hasUnsavedChanges: true });
     get().updateStats();
   },
 
@@ -117,13 +127,13 @@ export const useFamilyStore = create<FamilyStore>((set, get) => ({
     const members = get().members.map(m => 
       m.id === id ? { ...m, ...updates } : m
     );
-    set({ members });
+    set({ members, hasUnsavedChanges: true });
     get().updateStats();
   },
 
   deleteMember: (id) => {
     const members = get().members.filter(m => m.id !== id);
-    set({ members });
+    set({ members, hasUnsavedChanges: true });
     get().updateStats();
   },
 }));
