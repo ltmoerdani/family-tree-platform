@@ -386,6 +386,7 @@ export const UnifiedMemberModal: React.FC<UnifiedMemberModalProps> = ({
                           className={`flex items-start space-x-3 p-3 border rounded-lg cursor-pointer transition-colors hover:bg-gray-50 ${
                             formData.role === option.value ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
                           }`}
+                          aria-label={`${option.label}: ${option.desc}`}
                         >
                           <input
                             type="radio"
@@ -395,10 +396,11 @@ export const UnifiedMemberModal: React.FC<UnifiedMemberModalProps> = ({
                             onChange={(e) => updateFormData({ role: e.target.value as FormData['role'] })}
                             className="mt-1 text-blue-600 focus:ring-blue-500"
                             disabled={isSubmitting}
+                            aria-describedby={`role-desc-${option.value}`}
                           />
                           <div className="flex-1">
                             <div className="font-medium text-gray-900">{option.label}</div>
-                            <div className="text-sm text-gray-500">{option.desc}</div>
+                            <div className="text-sm text-gray-500" id={`role-desc-${option.value}`}>{option.desc}</div>
                           </div>
                         </label>
                       ))}

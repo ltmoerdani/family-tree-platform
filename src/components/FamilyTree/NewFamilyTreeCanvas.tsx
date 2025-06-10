@@ -70,10 +70,13 @@ export const NewFamilyTreeCanvas: React.FC<NewFamilyTreeCanvasProps> = ({
               {/* Center the first member card */}
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
-                  {/* Empty Member Card */}
-                  <div 
+                  {/* Empty Member Card - Accessible Button */}
+                  <button 
+                    type="button"
                     onClick={handleAddFirstMember}
-                    className="group relative bg-white rounded-xl border-2 border-dashed border-gray-300 hover:border-green-500 hover:bg-green-50 transition-all duration-200 cursor-pointer w-64 h-48 flex flex-col items-center justify-center shadow-sm hover:shadow-md"
+                    className="group relative bg-white rounded-xl border-2 border-dashed border-gray-300 hover:border-green-500 hover:bg-green-50 transition-all duration-200 cursor-pointer w-64 h-48 flex flex-col items-center justify-center shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                    aria-label="Tambah anggota pertama keluarga"
+                    aria-describedby="first-member-description"
                   >
                     <div className="w-16 h-16 bg-gray-100 group-hover:bg-green-100 rounded-full flex items-center justify-center mb-4 transition-colors">
                       <User className="w-8 h-8 text-gray-400 group-hover:text-green-600 transition-colors" />
@@ -92,10 +95,10 @@ export const NewFamilyTreeCanvas: React.FC<NewFamilyTreeCanvasProps> = ({
 
                     {/* Hover effect overlay */}
                     <div className="absolute inset-0 bg-green-500 bg-opacity-0 group-hover:bg-opacity-5 rounded-xl transition-all duration-200" />
-                  </div>
+                  </button>
 
                   {/* Guidance Text */}
-                  <div className="mt-8 max-w-md">
+                  <div className="mt-8 max-w-md" id="first-member-description">
                     <div className="flex items-center justify-center space-x-2 mb-2">
                       <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
                         <span className="text-blue-600 text-sm">💡</span>
