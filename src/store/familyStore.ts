@@ -31,7 +31,7 @@ export const useFamilyStore = create<FamilyStore>((set, get) => ({
   searchQuery: '',
   viewMode: {
     type: 'tree',
-    zoom: 100,
+    zoom: 75,
     showDeceased: true,
     showAlive: true,
     selectedGeneration: null,

@@ -7,20 +7,25 @@ import { useFamilyStore } from '../../store/familyStore';
 import { FamilyMember } from '../../types/family';
 
 export const TreeCanvas: React.FC = () => {
-  const canvasRef = useRef<HTMLButtonElement>(null);
-  const { members, viewMode, editMode, setEditMode, setViewMode } = useFamilyStore();
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const { members, viewMode, editMode, setEditMode, setViewMode, selectedMember, setSelectedMember } = useFamilyStore();
   
   // Pan/drag state for canvas navigation
-  const [panOffset, setPanOffset] = useState({ x: -1500, y: -300 }); // Start centered on expanded canvas
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 }); // Will be calculated dynamically
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [initialPanOffset, setInitialPanOffset] = useState({ x: 0, y: 0 });
+  const [isInitialPositionSet, setIsInitialPositionSet] = useState(false);
   
   // Touch/pinch zoom state
   const [lastTouchDistance, setLastTouchDistance] = useState<number | null>(null);
   const [isZooming, setIsZooming] = useState(false);
   const [lastWheelTime, setLastWheelTime] = useState(0);
   const [accumulatedDelta, setAccumulatedDelta] = useState(0);
+
+  // Define virtual canvas dimensions as constants accessible throughout the component
+  const VIRTUAL_CANVAS_WIDTH = 2000; 
+  const VIRTUAL_CANVAS_HEIGHT = 1500; 
 
   // Prevent browser zoom and add global CSS to prevent page movement
   useEffect(() => {
@@ -62,9 +67,9 @@ export const TreeCanvas: React.FC = () => {
       }
     };
   }, []);
-  
+
   // Calculate positions for family members with expanded canvas
-  const calculatePositions = (): Record<string, { x: number; y: number }> => {
+  const calculatePositions = useCallback((): Record<string, { x: number; y: number }> => {
     const positions: Record<string, { x: number; y: number }> = {};
     const generationGroups: Record<number, FamilyMember[]> = {};
     
@@ -77,11 +82,10 @@ export const TreeCanvas: React.FC = () => {
     });
 
     // Use much larger virtual canvas for better navigation
-    const VIRTUAL_CANVAS_WIDTH = 5000; // Increased from 1200
     const generationHeight = 350; // Increased spacing
     const cardSpacing = 300; // Increased horizontal spacing
-    const startingOffsetX = 1000; // Start further from left edge
-    const startingOffsetY = 200; // Start further from top
+    const startingOffsetX = 0; // Start further from left edge
+    const startingOffsetY = 0; // Start further from top
 
     const generationKeys = Object.keys(generationGroups).map(Number).sort((a, b) => a - b);
 
@@ -100,12 +104,58 @@ export const TreeCanvas: React.FC = () => {
     });
 
     return positions;
-  };
+  }, [members]);
+
+  // Auto-center family tree on initial load
+  useEffect(() => {
+    if (members.length > 0 && canvasRef.current && !isInitialPositionSet) {
+      const timer = setTimeout(() => {
+        const positions = calculatePositions();
+        const memberPositions = Object.values(positions);
+        
+        if (memberPositions.length === 0) return;
+        
+        const CARD_WIDTH = 160; // Tailwind w-40 is 160px
+        const CARD_HEIGHT = 200; // Approximate height based on visual
+        
+        // Find bounds of all members including their dimensions
+        const minX = Math.min(...memberPositions.map(p => p.x - CARD_WIDTH / 2));
+        const maxX = Math.max(...memberPositions.map(p => p.x + CARD_WIDTH / 2));
+        const minY = Math.min(...memberPositions.map(p => p.y - CARD_HEIGHT / 2));
+        const maxY = Math.max(...memberPositions.map(p => p.y + CARD_HEIGHT / 2));
+        
+        // Calculate center of family tree content
+        const contentCenterX = (minX + maxX) / 2;
+        const contentCenterY = (minY + maxY) / 2;
+        
+        // Get viewport dimensions
+        const rect = canvasRef.current!.getBoundingClientRect();
+        const viewportCenterX = rect.width / 2;
+        const viewportCenterY = rect.height / 2;
+
+        // Calculate pan offset to center the content in viewport
+        // Account for the current zoom level
+        const zoomScale = viewMode.zoom / 100;
+        
+        const newPanOffset = {
+          x: viewportCenterX - (contentCenterX * zoomScale),
+          y: viewportCenterY - (contentCenterY * zoomScale)
+        };
+        
+        setPanOffset(newPanOffset);
+        setIsInitialPositionSet(true);
+        console.log("Auto-centering applied. New panOffset:", newPanOffset, "Zoom scale:", zoomScale);
+
+      }, 300); // Small delay to ensure DOM is ready
+      
+      return () => clearTimeout(timer);
+    }
+  }, [members, viewMode.zoom, isInitialPositionSet, calculatePositions]);
 
   const positions = calculatePositions();
 
   // Utility function to calculate distance between two touch points
-  const getTouchDistance = (touches: React.TouchList): number => {
+  const getTouchDistance = (touches: TouchList): number => {
     if (touches.length < 2) return 0;
     const touch1 = touches[0];
     const touch2 = touches[1];
@@ -185,7 +235,7 @@ export const TreeCanvas: React.FC = () => {
   }, [viewMode.zoom, setViewMode, panOffset]);
 
   // Mouse event handlers for panning
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+  const handleMouseDown = useCallback((e: MouseEvent) => {
     if (e.button === 0) { // Left mouse button only
       setIsPanning(true);
       setPanStart({ x: e.clientX, y: e.clientY });
@@ -194,7 +244,7 @@ export const TreeCanvas: React.FC = () => {
     }
   }, [panOffset]);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+  const handleMouseMove = useCallback((e: MouseEvent) => {
     if (isPanning) {
       const deltaX = e.clientX - panStart.x;
       const deltaY = e.clientY - panStart.y;
@@ -210,178 +260,75 @@ export const TreeCanvas: React.FC = () => {
     setIsPanning(false);
   }, []);
 
-  // Enhanced helper function to detect pinch gesture
-  const isPinchGesture = useCallback((e: React.WheelEvent): boolean => {
-    // More precise pinch detection
-    const hasCtrlKey = e.ctrlKey;
-    const isVerticalOnly = e.deltaY !== 0 && e.deltaX === 0;
-    const isMixedDelta = e.deltaY !== 0 && e.deltaX !== 0;
-    const isSmallMagnitude = Math.abs(e.deltaY) < 120; // Increased threshold for better detection
-    
-    return hasCtrlKey || 
-           (isVerticalOnly && isSmallMagnitude) ||
-           (isMixedDelta && isSmallMagnitude) ||
-           (Math.abs(e.deltaY) < 80 && Math.abs(e.deltaX) < 80);
-  }, []);
-
   // Wheel event handler for trackpad zoom
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    // Aggressively prevent all default behaviors
+  const handleWheel = useCallback((e: WheelEvent) => {
     e.preventDefault();
-    e.stopPropagation();
+    const currentTime = Date.now();
+    const delta = e.deltaY > 0 ? -1 : 1;
     
-    const now = Date.now();
-    if (now - lastWheelTime < 16) return; // Smoother 60fps throttle
-    setLastWheelTime(now);
-    
-    if (isPinchGesture(e)) {
-      // Zoom gesture with more granular control
-      let delta = e.deltaY > 0 ? -1 : 1;
-      const magnitude = Math.abs(e.deltaY);
-      
-      // More refined sensitivity based on gesture magnitude
-      if (magnitude < 2) delta *= 0.2;
-      else if (magnitude < 5) delta *= 0.4;
-      else if (magnitude < 10) delta *= 0.7;
-      else delta *= 1.0;
-      
-      const newAccumulated = accumulatedDelta + delta;
-      setAccumulatedDelta(newAccumulated);
-      
-      // Lower threshold for more responsive zoom
-      if (Math.abs(newAccumulated) >= 0.6) {
-        const zoomDirection = newAccumulated > 0 ? 1 : -1;
-        handleZoom(zoomDirection, e.clientX, e.clientY, true);
-        setAccumulatedDelta(0);
-      }
+    // Check if enough time has passed or accumulated delta is significant
+    if (currentTime - lastWheelTime > 100 || Math.abs(accumulatedDelta) >= 1) {
+      handleZoom(delta, e.clientX, e.clientY, true);
+      setLastWheelTime(currentTime);
+      setAccumulatedDelta(0);
     } else {
-      // Pan gesture with smoother movement
-      setPanOffset(prev => ({
-        x: prev.x - (e.deltaX * 0.5),
-        y: prev.y - (e.deltaY * 0.5)
-      }));
+      setAccumulatedDelta(prev => prev + delta);
     }
-  }, [handleZoom, lastWheelTime, accumulatedDelta, isPinchGesture]);
+  }, [handleZoom, lastWheelTime, accumulatedDelta]);
 
   // Touch event handlers for mobile pinch-to-zoom
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    // Prevent all default behaviors
-    e.preventDefault();
-    e.stopPropagation();
-    
+  const handleTouchStart = useCallback((e: TouchEvent) => {
     if (e.touches.length === 2) {
-      // Two finger touch - prepare for zoom
-      setIsZooming(true);
+      e.preventDefault(); // Prevent page scroll
       setLastTouchDistance(getTouchDistance(e.touches));
+      setIsZooming(true);
     } else if (e.touches.length === 1) {
-      // Single touch - prepare for pan
-      const touch = e.touches[0];
       setIsPanning(true);
-      setPanStart({ x: touch.clientX, y: touch.clientY });
+      setPanStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
       setInitialPanOffset({ ...panOffset });
+      e.preventDefault(); // Prevent page scroll during pan
     }
   }, [panOffset]);
 
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    // Prevent all default behaviors
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (e.touches.length === 2 && isZooming && lastTouchDistance !== null) {
-      // Two finger zoom with balanced threshold
-      const currentDistance = getTouchDistance(e.touches);
-      const distanceDelta = currentDistance - lastTouchDistance;
-      
-      if (Math.abs(distanceDelta) > 8) { // Balanced threshold - not too sensitive, not too slow
-        const zoomDelta = distanceDelta > 0 ? 1 : -1;
-        
-        // Get center point between two touches
-        const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-        const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-        
-        handleZoom(zoomDelta, centerX, centerY);
-        setLastTouchDistance(currentDistance);
-      }
-    } else if (e.touches.length === 1 && isPanning && !isZooming) {
-      // Single touch pan
-      const touch = e.touches[0];
-      const deltaX = touch.clientX - panStart.x;
-      const deltaY = touch.clientY - panStart.y;
-      
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (isZooming && e.touches.length === 2) {
+      e.preventDefault();
+      const currentTouchDistance = getTouchDistance(e.touches);
+      if (lastTouchDistance === null) return;
+
+      const delta = currentTouchDistance - lastTouchDistance;
+      handleZoom(delta * 0.01, (e.touches[0].clientX + e.touches[1].clientX) / 2, (e.touches[0].clientY + e.touches[1].clientY) / 2);
+      setLastTouchDistance(currentTouchDistance);
+    } else if (isPanning && e.touches.length === 1) {
+      e.preventDefault();
+      const deltaX = e.touches[0].clientX - panStart.x;
+      const deltaY = e.touches[0].clientY - panStart.y;
+
       setPanOffset({
         x: initialPanOffset.x + deltaX,
         y: initialPanOffset.y + deltaY
       });
     }
-  }, [isZooming, lastTouchDistance, isPanning, panStart, initialPanOffset, handleZoom]);
+  }, [isPanning, isZooming, panStart, initialPanOffset, lastTouchDistance, handleZoom]);
 
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    // Prevent all default behaviors
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (e.touches.length === 0) {
-      // All touches ended
+  const handleTouchEnd = useCallback((e: TouchEvent) => {
+    if (isZooming && e.touches.length < 2) {
       setIsZooming(false);
+      setLastTouchDistance(null);
+    }
+    if (isPanning && e.touches.length < 1) {
       setIsPanning(false);
-      setLastTouchDistance(null);
-    } else if (e.touches.length === 1) {
-      // From two touches to one - end zoom, potentially start pan
-      setIsZooming(false);
-      setLastTouchDistance(null);
-      
-      if (!isPanning) {
-        const touch = e.touches[0];
-        setIsPanning(true);
-        setPanStart({ x: touch.clientX, y: touch.clientY });
-        setInitialPanOffset({ ...panOffset });
-      }
     }
-  }, [isPanning, panOffset]);
+  }, [isZooming, isPanning]);
 
-  // Global mouse events for panning
-  useEffect(() => {
-    if (isPanning) {
-      const handleGlobalMouseMove = (e: MouseEvent) => {
-        const deltaX = e.clientX - panStart.x;
-        const deltaY = e.clientY - panStart.y;
-        
-        setPanOffset({
-          x: initialPanOffset.x + deltaX,
-          y: initialPanOffset.y + deltaY
-        });
-      };
-
-      const handleGlobalMouseUp = () => {
-        setIsPanning(false);
-      };
-
-      document.addEventListener('mousemove', handleGlobalMouseMove);
-      document.addEventListener('mouseup', handleGlobalMouseUp);
-      
-      return () => {
-        document.removeEventListener('mousemove', handleGlobalMouseMove);
-        document.removeEventListener('mouseup', handleGlobalMouseUp);
-      };
-    }
-  }, [isPanning, panStart, initialPanOffset]);
-
-  // Handle click on empty area to exit edit mode
-  const handleCanvasClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget && editMode && !isPanning) {
+  // Keyboard event handler for navigation and zoom
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (editMode && e.key === 'Escape') {
       setEditMode(false);
+      return;
     }
-  };
 
-  // Handle keyboard events for accessibility
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     switch (e.key) {
-      case 'Escape':
-        if (editMode) {
-          setEditMode(false);
-          e.preventDefault();
-        }
-        break;
       case 'ArrowUp':
         e.preventDefault();
         setPanOffset(prev => ({ ...prev, y: prev.y + 50 }));
@@ -410,6 +357,29 @@ export const TreeCanvas: React.FC = () => {
     }
   }, [editMode, setEditMode, handleZoom]);
 
+  // Handle click on canvas to deselect member or exit edit mode
+  const handleCanvasClick = useCallback((e: MouseEvent) => {
+    // Check if the click occurred on a member card
+    const target = e.target as HTMLElement;
+    const isMemberCard = target.closest('.member-card'); // Assuming member cards have a class "member-card"
+
+    if (!isMemberCard && selectedMember) {
+      setSelectedMember(null);
+    }
+
+    if (editMode) {
+      setEditMode(false);
+    }
+  }, [selectedMember, setSelectedMember, editMode, setEditMode]);
+
+  const handleContextMenu = useCallback((e: MouseEvent) => {
+    e.preventDefault();
+  }, []);
+
+  const handleDragStart = useCallback((e: Event) => {
+    e.preventDefault();
+  }, []);
+
   // Filter members based on view settings
   const filteredMembers = members.filter(member => {
     if (!viewMode.showAlive && member.isAlive) return false;
@@ -418,9 +388,47 @@ export const TreeCanvas: React.FC = () => {
     return true;
   });
 
+  // Add and remove event listeners for wheel and touch events to control passive behavior
+  useEffect(() => {
+    const canvasElement = canvasRef.current;
+    if (!canvasElement) return;
+
+    // Options for non-passive event listeners
+    const eventListenerOptions = { passive: false };
+
+    canvasElement.addEventListener('wheel', handleWheel, eventListenerOptions);
+    canvasElement.addEventListener('touchstart', handleTouchStart, eventListenerOptions);
+    canvasElement.addEventListener('touchmove', handleTouchMove, eventListenerOptions);
+    canvasElement.addEventListener('touchend', handleTouchEnd, eventListenerOptions);
+
+    // Mouse event listeners
+    canvasElement.addEventListener('mousedown', handleMouseDown, eventListenerOptions);
+    canvasElement.addEventListener('click', handleCanvasClick);
+    canvasElement.addEventListener('contextmenu', handleContextMenu, eventListenerOptions);
+    canvasElement.addEventListener('dragstart', handleDragStart, eventListenerOptions);
+
+    // Global listeners
+    window.addEventListener('mousemove', handleMouseMove, eventListenerOptions);
+    window.addEventListener('mouseup', handleMouseUp, eventListenerOptions);
+    window.addEventListener('keydown', handleKeyDown);
+    
+    return () => {
+      canvasElement.removeEventListener('wheel', handleWheel);
+      canvasElement.removeEventListener('touchstart', handleTouchStart);
+      canvasElement.removeEventListener('touchmove', handleTouchMove);
+      canvasElement.removeEventListener('touchend', handleTouchEnd);
+      canvasElement.removeEventListener('mousedown', handleMouseDown);
+      canvasElement.removeEventListener('click', handleCanvasClick);
+      canvasElement.removeEventListener('contextmenu', handleContextMenu);
+      canvasElement.removeEventListener('dragstart', handleDragStart);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleWheel, handleTouchStart, handleTouchMove, handleTouchEnd, handleMouseDown, handleMouseMove, handleMouseUp, handleCanvasClick, handleKeyDown, handleContextMenu, handleDragStart]);
+
   return (
-    <button 
-      ref={canvasRef}
+    <section
       className={`flex-1 bg-gray-50 relative transition-all duration-200 border-0 outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset ${
         editMode ? 'bg-blue-25' : ''
       } ${isPanning ? 'cursor-grabbing' : 'cursor-grab'}`}
@@ -438,148 +446,144 @@ export const TreeCanvas: React.FC = () => {
         WebkitTouchCallout: 'none', // Prevent callout on iOS
         WebkitTapHighlightColor: 'transparent', // Remove tap highlight
       }}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onWheel={handleWheel}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      onClick={handleCanvasClick}
-      onKeyDown={handleKeyDown}
-      onContextMenu={(e) => e.preventDefault()} // Prevent right-click menu
-      onDragStart={(e) => e.preventDefault()} // Prevent drag
       aria-label="Family tree canvas - drag to pan, scroll or pinch to zoom, click to interact, use arrow keys to navigate, press Escape to exit edit mode, +/- to zoom"
     >
-      {/* Large draggable canvas container */}
+      {/* This div acts as the actual visible viewport for the family tree */}
       <div 
-        className="relative pointer-events-none"
-        style={{
-          width: '5000px', // Much wider canvas
-          height: '4000px', // Much taller canvas
-          transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${viewMode.zoom / 100})`,
-          transformOrigin: '0 0', // Keep at top-left for predictable behavior
-          transition: isPanning || isZooming ? 'none' : 'transform 0.1s cubic-bezier(0.25, 0.46, 0.45, 0.94)', // Smooth transition when not actively interacting
-          willChange: 'transform', // Optimize for transform changes
-        }}
+        ref={canvasRef} // Attach ref to this actual viewport div
+        className="absolute inset-0 overflow-hidden"
+        style={{ position: 'relative' }}
       >
-        {/* Connection Lines SVG */}
-        <svg 
-          className="absolute inset-0 pointer-events-none"
-          style={{ width: '100%', height: '100%' }}
+        {/* Large draggable canvas container */}
+        <div 
+          className="relative pointer-events-none"
+          style={{
+            width: `${VIRTUAL_CANVAS_WIDTH}px`, // Much wider canvas
+            height: `${VIRTUAL_CANVAS_HEIGHT}px`, // Much taller canvas
+            transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${viewMode.zoom / 100})`,
+            transformOrigin: '0 0', // Keep at top-left for predictable behavior
+            transition: (isPanning || isZooming || !isInitialPositionSet) ? 'none' : 'transform 0.1s cubic-bezier(0.25, 0.46, 0.45, 0.94)', // Smooth transition when not actively interacting
+            willChange: 'transform', // Optimize for transform changes
+          }}
         >
-          {/* Render family connection lines here */}
-          {filteredMembers.map(member => {
-            const memberPos = positions[member.id];
-            if (!memberPos) return null;
+          {/* Connection Lines SVG */}
+          <svg 
+            className="absolute inset-0 pointer-events-none"
+            style={{ width: '100%', height: '100%' }}
+          >
+            {/* Render family connection lines here */}
+            {filteredMembers.map(member => {
+              const memberPos = positions[member.id];
+              if (!memberPos) return null;
 
-            // Draw lines to children
-            return member.childrenIds?.map((childId: string) => {
-              const childPos = positions[childId];
-              if (!childPos) return null;
+              // Draw lines to children
+              return member.childrenIds?.map((childId: string) => {
+                const childPos = positions[childId];
+                if (!childPos) return null;
+
+                return (
+                  <line
+                    key={`${member.id}-${childId}`}
+                    x1={memberPos.x}
+                    y1={memberPos.y + 60}
+                    x2={childPos.x}
+                    y2={childPos.y - 60}
+                    stroke="#6B7280"
+                    strokeWidth="2"
+                    className="hover:stroke-blue-500 transition-colors"
+                  />
+                );
+              });
+            })}
+
+            {/* Draw marriage connections */}
+            {filteredMembers.map(member => {
+              if (!member.spouseId) return null;
+              
+              const memberPos = positions[member.id];
+              const spousePos = positions[member.spouseId];
+              
+              if (!memberPos || !spousePos) return null;
 
               return (
                 <line
-                  key={`${member.id}-${childId}`}
+                  key={`marriage-${member.id}-${member.spouseId}`}
                   x1={memberPos.x}
-                  y1={memberPos.y + 60}
-                  x2={childPos.x}
-                  y2={childPos.y - 60}
-                  stroke="#6B7280"
-                  strokeWidth="2"
-                  className="hover:stroke-blue-500 transition-colors"
+                  y1={memberPos.y}
+                  x2={spousePos.x}
+                  y2={spousePos.y}
+                  stroke="#EF4444"
+                  strokeWidth="3"
+                  strokeDasharray="5,5"
+                  className="hover:stroke-red-600 transition-colors"
                 />
               );
-            });
-          })}
+            })}
+          </svg>
 
-          {/* Draw marriage connections */}
-          {filteredMembers.map(member => {
-            if (!member.spouseId) return null;
-            
-            const memberPos = positions[member.id];
-            const spousePos = positions[member.spouseId];
-            
-            if (!memberPos || !spousePos) return null;
+          {/* Render Member Cards */}
+          <div style={{ position: 'relative', zIndex: 10 }} className="pointer-events-auto">
+            {filteredMembers.map(member => {
+              const position = positions[member.id];
+              if (!position) return null;
 
-            return (
-              <line
-                key={`marriage-${member.id}-${member.spouseId}`}
-                x1={memberPos.x}
-                y1={memberPos.y}
-                x2={spousePos.x}
-                y2={spousePos.y}
-                stroke="#EF4444"
-                strokeWidth="3"
-                strokeDasharray="5,5"
-                className="hover:stroke-red-600 transition-colors"
-              />
-            );
-          })}
-        </svg>
-
-        {/* Render Member Cards */}
-        <div style={{ position: 'relative', zIndex: 10 }} className="pointer-events-auto">
-          {filteredMembers.map(member => {
-            const position = positions[member.id];
-            if (!position) return null;
-
-            return editMode ? (
-              <EditableMemberCard
-                key={member.id}
-                member={member}
-                position={position}
-              />
-            ) : (
-              <MemberCard
-                key={member.id}
-                member={member}
-                position={position}
-              />
-            );
-          })}
-        </div>
-
-        {/* Generation Labels */}
-        {Object.keys(
-          filteredMembers.reduce((acc, member) => {
-            acc[member.generation] = true;
-            return acc;
-          }, {} as Record<number, boolean>)
-        ).map(generation => (
-          <div
-            key={`gen-${generation}`}
-            className={`absolute left-4 px-3 py-1 rounded-full shadow-sm border text-sm font-medium transition-colors pointer-events-none ${
-              editMode 
-                ? 'bg-blue-100 border-blue-300 text-blue-800' 
-                : 'bg-white border-gray-300 text-gray-600'
-            }`}
-            style={{
-              top: 120 + ((parseInt(generation) - 1) * 350), // Updated spacing
-            }}
-          >
-            Generasi {generation}
+              return editMode ? (
+                <EditableMemberCard
+                  key={member.id}
+                  member={member}
+                  position={position}
+                />
+              ) : (
+                <MemberCard
+                  key={member.id}
+                  member={member}
+                  position={position}
+                />
+              );
+            })}
           </div>
-        ))}
 
-        {/* Edit Mode Overlay Instructions */}
-        {editMode && filteredMembers.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-auto">
-            <div className="text-center p-8 bg-white rounded-lg shadow-lg border-2 border-blue-200">
-              <div className="text-4xl mb-4">👨‍👩‍👧‍👦</div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Mode Edit Aktif
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Mulai membangun pohon keluarga dengan menambahkan anggota pertama
-              </p>
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-                Tambah Anggota Pertama
-              </button>
+          {/* Generation Labels */}
+          {Object.keys(
+            filteredMembers.reduce((acc, member) => {
+              acc[member.generation] = true;
+              return acc;
+            }, {} as Record<number, boolean>)
+          ).map(generation => (
+            <div
+              key={`gen-${generation}`}
+              className={`absolute left-4 px-3 py-1 rounded-full shadow-sm border text-sm font-medium transition-colors pointer-events-none ${
+                editMode 
+                  ? 'bg-blue-100 border-blue-300 text-blue-800' 
+                  : 'bg-white border-gray-300 text-gray-600'
+              }`}
+              style={{
+                top: 120 + ((parseInt(generation) - 1) * 350), // Updated spacing
+              }}
+            >
+              Generasi {generation}
             </div>
-          </div>
-        )}
+          ))}
+
+          {/* Edit Mode Overlay Instructions */}
+          {editMode && filteredMembers.length === 0 && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-auto">
+              <div className="text-center p-8 bg-white rounded-lg shadow-lg border-2 border-blue-200">
+                <div className="text-4xl mb-4">👨‍👩‍👧‍👦</div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Mode Edit Aktif
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Mulai membangun pohon keluarga dengan menambahkan anggota pertama
+                </p>
+                <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                  Tambah Anggota Pertama
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-    </button>
+    </section>
   );
 };
