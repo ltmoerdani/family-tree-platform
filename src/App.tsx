@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ProtectedRoute } from './components/Auth/ProtectedRoute';
 import { Dashboard } from './components/Dashboard/Dashboard';
 import { UpgradePage } from './components/Upgrade/UpgradePage';
+import { NewFamilyTreeCanvas } from './components/FamilyTree/NewFamilyTreeCanvas';
 import { Header } from './components/Header/Header';
 import { Toolbar } from './components/Toolbar/Toolbar';
 import { StatsSidebar } from './components/Sidebar/StatsSidebar';
@@ -11,28 +12,49 @@ import { BottomNavigation } from './components/BottomNavigation/BottomNavigation
 import { CanvasControls } from './components/FamilyTree/CanvasControls';
 
 import { useFamilyStore } from './store/familyStore';
+import { useDashboardStore } from './store/dashboardStore';
 import { useAuthStore } from './store/authStore';
 import { mockFamilyData } from './data/mockData';
 
 function App() {
   const { setMembers, selectedMember, viewMode } = useFamilyStore();
+  const { familyTrees } = useDashboardStore();
   const { user } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'family-tree' | 'upgrade'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'family-tree' | 'new-family-tree' | 'upgrade'>('dashboard');
+  const [currentFamilyTreeName, setCurrentFamilyTreeName] = useState<string>('');
 
   useEffect(() => {
     // Check URL to determine current view
     const path = window.location.pathname;
+    
     if (path.startsWith('/family-tree/')) {
-      setCurrentView('family-tree');
-      // Load mock data for family tree view
-      setMembers(mockFamilyData);
+      const treeId = path.split('/family-tree/')[1];
+      const familyTree = familyTrees.find(tree => tree.id === treeId);
+      
+      if (!familyTree) {
+        // Family tree not found, redirect to dashboard
+        window.history.pushState({}, '', '/dashboard');
+        setCurrentView('dashboard');
+        return;
+      }
+      
+      setCurrentFamilyTreeName(familyTree.name);
+      
+      // For Wijaya family (existing), show normal family tree view
+      if (treeId === 'wijaya-family') {
+        setCurrentView('family-tree');
+        setMembers(mockFamilyData);
+      } else {
+        // For new family trees, show new canvas
+        setCurrentView('new-family-tree');
+      }
     } else if (path === '/upgrade') {
       setCurrentView('upgrade');
     } else {
       setCurrentView('dashboard');
     }
-  }, [setMembers]);
+  }, [setMembers, familyTrees]);
 
   const handleMenuToggle = () => {
     setSidebarOpen(!sidebarOpen);
@@ -43,8 +65,22 @@ function App() {
     const handlePopState = () => {
       const path = window.location.pathname;
       if (path.startsWith('/family-tree/')) {
-        setCurrentView('family-tree');
-        setMembers(mockFamilyData);
+        const treeId = path.split('/family-tree/')[1];
+        const familyTree = familyTrees.find(tree => tree.id === treeId);
+        
+        if (!familyTree) {
+          setCurrentView('dashboard');
+          return;
+        }
+        
+        setCurrentFamilyTreeName(familyTree.name);
+        
+        if (treeId === 'wijaya-family') {
+          setCurrentView('family-tree');
+          setMembers(mockFamilyData);
+        } else {
+          setCurrentView('new-family-tree');
+        }
       } else if (path === '/upgrade') {
         setCurrentView('upgrade');
       } else {
@@ -54,13 +90,22 @@ function App() {
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [setMembers]);
+  }, [setMembers, familyTrees]);
 
   return (
     <ProtectedRoute>
       {/* Refactored nested ternary to independent statements */}
       {currentView === 'dashboard' && <Dashboard />}
       {currentView === 'upgrade' && <UpgradePage />}
+      {currentView === 'new-family-tree' && (
+        <NewFamilyTreeCanvas
+          familyTreeName={currentFamilyTreeName}
+          onBackToDashboard={() => {
+            window.history.pushState({}, '', '/dashboard');
+            setCurrentView('dashboard');
+          }}
+        />
+      )}
       {currentView === 'family-tree' && (
         <div className="h-screen flex flex-col bg-gray-50">
           {/* Header */}

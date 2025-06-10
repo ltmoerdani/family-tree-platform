@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FamilyMember } from '../../types/family';
 import { useFamilyStore } from '../../store/familyStore';
 import { MapPin, Briefcase, Calendar, Phone, Mail, Edit, Plus } from 'lucide-react';
-import { AddMemberModal } from '../Forms/AddMemberModal';
+import { UnifiedMemberModal } from '../Forms/UnifiedMemberModal';
 
 interface GridMemberCardProps {
   member: FamilyMember;
@@ -275,16 +275,15 @@ export const GridMemberCard: React.FC<GridMemberCardProps> = ({
       )}
 
       {/* Modals */}
-      <AddMemberModal
+      <UnifiedMemberModal
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}
         editingMember={member}
       />
 
-      <AddMemberModal
+      <UnifiedMemberModal
         isOpen={showAddChildModal}
         onClose={() => setShowAddChildModal(false)}
-        preselectedParent={member}
       />
     </>
   );

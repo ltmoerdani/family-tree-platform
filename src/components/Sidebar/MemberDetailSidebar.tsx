@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Phone, Mail, MapPin, Calendar, Briefcase, GraduationCap, Heart, MessageCircle, Edit } from 'lucide-react';
 import { useFamilyStore } from '../../store/familyStore';
-import { AddMemberModal } from '../Forms/AddMemberModal';
+import { UnifiedMemberModal } from '../Forms/UnifiedMemberModal';
 
 export const MemberDetailSidebar: React.FC = () => {
   const { selectedMember, setSelectedMember } = useFamilyStore();
@@ -197,7 +197,7 @@ export const MemberDetailSidebar: React.FC = () => {
         </div>
       </div>
 
-      <AddMemberModal
+      <UnifiedMemberModal
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}
         editingMember={selectedMember}
