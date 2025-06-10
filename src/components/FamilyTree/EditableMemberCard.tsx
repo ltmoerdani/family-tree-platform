@@ -31,16 +31,24 @@ interface DirectionalPlusButtonProps {
   onDirectionalAdd: (direction: Direction) => void;
 }
 
-const DirectionalPlusButton: React.FC<DirectionalPlusButtonProps> = ({ direction, icon, tooltip, className, onDirectionalAdd }: DirectionalPlusButtonProps) => (
+const DirectionalPlusButton: React.FC<DirectionalPlusButtonProps> = ({ 
+  direction, 
+  icon, 
+  tooltip, 
+  className, 
+  onDirectionalAdd 
+}: DirectionalPlusButtonProps) => (
   <button
     onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
       e.stopPropagation();
       onDirectionalAdd(direction);
     }}
-    className={`absolute w-8 h-8 bg-white border-2 border-blue-500 rounded-full flex items-center justify-center text-blue-600 hover:bg-blue-50 hover:scale-110 transition-all duration-200 shadow-lg hover:shadow-xl group ${className}`}
+    className={`absolute w-10 h-10 bg-white border-2 border-blue-500 rounded-full flex items-center justify-center text-blue-600 hover:bg-blue-50 hover:scale-110 transition-all duration-200 shadow-lg hover:shadow-xl group ${className}`}
     title={tooltip}
   >
-    {icon}
+    <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white">
+      {icon}
+    </div>
     <div className="absolute invisible group-hover:visible bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-50 -top-8 left-1/2 transform -translate-x-1/2">
       {tooltip}
     </div>
@@ -184,28 +192,28 @@ export const EditableMemberCard: React.FC<EditableMemberCardProps> = ({
                 direction="up"
                 icon={<ArrowUp className="w-4 h-4" />}
                 tooltip="Tambah Orang Tua"
-                className="-top-4 left-1/2 transform -translate-x-1/2"
+                className="-top-5 left-1/2 transform -translate-x-1/2"
                 onDirectionalAdd={handleDirectionalAdd}
               />
               <DirectionalPlusButton
                 direction="down"
                 icon={<ArrowDown className="w-4 h-4" />}
                 tooltip="Tambah Anak/Keturunan"
-                className="-bottom-4 left-1/2 transform -translate-x-1/2"
+                className="-bottom-5 left-1/2 transform -translate-x-1/2"
                 onDirectionalAdd={handleDirectionalAdd}
               />
               <DirectionalPlusButton
                 direction="left"
                 icon={<ArrowLeft className="w-4 h-4" />}
                 tooltip="Tambah Pasangan (Kiri)"
-                className="-left-4 top-1/2 transform -translate-y-1/2"
+                className="-left-5 top-1/2 transform -translate-y-1/2"
                 onDirectionalAdd={handleDirectionalAdd}
               />
               <DirectionalPlusButton
                 direction="right"
                 icon={<ArrowRight className="w-4 h-4" />}
                 tooltip="Tambah Pasangan (Kanan)"
-                className="-right-4 top-1/2 transform -translate-y-1/2"
+                className="-right-5 top-1/2 transform -translate-y-1/2"
                 onDirectionalAdd={handleDirectionalAdd}
               />
             </>

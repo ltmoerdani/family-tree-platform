@@ -23,6 +23,7 @@ interface FamilyStore {
   addMember: (member: FamilyMember) => void;
   updateMember: (id: string, updates: Partial<FamilyMember>) => void;
   deleteMember: (id: string) => void;
+  addMemberWithRelationship: (member: FamilyMember, relationshipType: string, targetMemberId: string) => void;
 }
 
 export const useFamilyStore = create<FamilyStore>((set, get) => ({
@@ -141,6 +142,105 @@ export const useFamilyStore = create<FamilyStore>((set, get) => ({
   deleteMember: (id) => {
     const members = get().members.filter(m => m.id !== id);
     set({ members, hasUnsavedChanges: true });
+    get().updateStats();
+  },
+
+  addMemberWithRelationship: (member, relationshipType, targetMemberId) => {
+    const { members } = get();
+    const targetMember = members.find(m => m.id === targetMemberId);
+    
+    if (!targetMember) return;
+
+    // Calculate generation based on relationship type
+    let newGeneration = targetMember.generation;
+    
+    // Determine generation based on relationship type
+    switch (relationshipType) {
+      case 'father':
+      case 'mother':
+      case 'grandfather':
+      case 'grandmother':
+      case 'both_parents':
+        newGeneration = targetMember.generation - 1;
+        break;
+      case 'biological_child':
+      case 'step_child':
+      case 'adopted_child':
+        newGeneration = targetMember.generation + 1;
+        break;
+      case 'grandchild':
+        newGeneration = targetMember.generation + 2;
+        break;
+      case 'great_grandchild':
+        newGeneration = targetMember.generation + 3;
+        break;
+      case 'husband':
+      case 'wife':
+      case 'partner':
+        // Same generation for spouses - no change needed
+        break;
+      default:
+        // Keep same generation for unspecified relationships
+        break;
+    }
+
+    // Create new member with calculated generation
+    const newMember: FamilyMember = {
+      ...member,
+      generation: newGeneration
+    };
+
+    // Update relationships based on type
+    const updatedMembers = [...members, newMember];
+    
+    // Update target member's relationships
+    const updatedTargetMember = { ...targetMember };
+    
+    switch (relationshipType) {
+      case 'father':
+      case 'mother':
+      case 'grandfather':
+      case 'grandmother':
+        // Add as parent
+        updatedTargetMember.parentIds ??= [];
+        updatedTargetMember.parentIds.push(newMember.id);
+        
+        // Add target as child to new member
+        newMember.childrenIds = [targetMemberId];
+        break;
+        
+      case 'biological_child':
+      case 'step_child':
+      case 'adopted_child':
+      case 'grandchild':
+      case 'great_grandchild':
+        // Add as child
+        updatedTargetMember.childrenIds ??= [];
+        updatedTargetMember.childrenIds.push(newMember.id);
+        
+        // Add target as parent to new member
+        newMember.parentIds = [targetMemberId];
+        break;
+        
+      case 'husband':
+      case 'wife':
+      case 'partner':
+        // Set as spouse
+        updatedTargetMember.spouseId = newMember.id;
+        newMember.spouseId = targetMemberId;
+        
+        // Update marital status
+        updatedTargetMember.maritalStatus = 'married';
+        newMember.maritalStatus = 'married';
+        break;
+    }
+
+    // Update the members array
+    const finalMembers = updatedMembers.map(m => 
+      m.id === targetMemberId ? updatedTargetMember : m
+    );
+
+    set({ members: finalMembers, hasUnsavedChanges: true });
     get().updateStats();
   },
 }));
