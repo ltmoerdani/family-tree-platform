@@ -111,6 +111,17 @@ export const EditableMemberCard: React.FC<EditableMemberCardProps> = ({
     return `(${birthYear})`;
   };
 
+  const calculateAge = () => {
+    const birthDate = new Date(member.birthDate);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
   const isSelected = selectedMember?.id === member.id;
 
   // Replace nested ternary for border color
@@ -168,7 +179,16 @@ export const EditableMemberCard: React.FC<EditableMemberCardProps> = ({
           id={`member-info-${member.id}`}
           className={`w-40 h-48 bg-white rounded-xl shadow-md hover:shadow-lg border-2 transition-all duration-200 ${borderColorClass} ${selectedBorderClass} ${!member.isAlive ? 'border-gray-400 bg-gray-50' : ''} relative overflow-hidden`}
         >
-          {/* Status Indicators */}
+          {/* Generation badge - Moved to top left corner */}
+          <div className="absolute -top-2 -left-2">
+            <div className={`w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center text-white shadow-sm ${
+              member.gender === 'male' ? 'bg-blue-500' : 'bg-pink-500'
+            }`}>
+              {member.generation}
+            </div>
+          </div>
+
+          {/* Status Indicators - Keep in top right */}
           <output
             className="absolute -top-2 -right-2 flex space-x-1 z-20"
             aria-label="Status indicators"
@@ -240,33 +260,37 @@ export const EditableMemberCard: React.FC<EditableMemberCardProps> = ({
             </div>
           </div>
 
-          {/* Info */}
+          {/* Info - Updated layout like image */}
           <div className="px-3 pb-4 text-center">
+            {/* Nickname first (if exists) */}
+            {member.nickname && (
+              <p className="text-xs text-gray-500 mb-1 italic">
+                ({member.nickname})
+              </p>
+            )}
+            
+            {/* Full name */}
             <h3 className="font-bold text-gray-900 text-sm leading-tight mb-1 truncate">
               {member.name}
             </h3>
-            {member.nickname && (
-              <p className="text-xs text-gray-500 mb-1 italic truncate">
-                "{member.nickname}"
+            
+            {/* Birth year and age */}
+            <div className="space-y-0.5">
+              <p className="text-xs text-gray-600">
+                {getYearDisplay()}
               </p>
-            )}
-            <p className="text-xs text-gray-600">
-              {getYearDisplay()}
-            </p>
+              {/* Show age calculation */}
+              <p className="text-xs text-gray-500">
+                {calculateAge()} tahun
+              </p>
+            </div>
+            
+            {/* Profession (if exists) */}
             {member.profession && (
               <p className="text-xs text-gray-500 mt-1 truncate">
                 {member.profession}
               </p>
             )}
-          </div>
-
-          {/* Generation Badge */}
-          <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
-            <div className={`w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center text-white shadow-sm ${
-              member.gender === 'male' ? 'bg-blue-500' : 'bg-pink-500'
-            }`}>
-              {member.generation}
-            </div>
           </div>
 
           {/* Edit Mode Overlay */}

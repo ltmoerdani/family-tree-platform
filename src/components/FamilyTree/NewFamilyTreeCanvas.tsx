@@ -78,10 +78,10 @@ export const NewFamilyTreeCanvas: React.FC<NewFamilyTreeCanvasProps> = ({
                 <div className="absolute inset-0">
                   {/* Render existing members using consistent MemberCard component */}
                   {members.map((member, index) => {
-                    // Simple positioning for new family tree - can be enhanced later
+                    // Simple positioning for new family tree with proper spacing
                     const position = {
-                      x: 400 + (index * 200), // Spread horizontally
-                      y: 300 // Center vertically
+                      x: 400 + (index * 280), // Increased horizontal spacing
+                      y: 300 + (member.generation * 350) // Increased vertical spacing between generations
                     };
                     
                     return (

@@ -125,11 +125,20 @@ export const MemberCard: React.FC<MemberCardProps> = ({
         aria-label={getAriaLabel()}
         aria-pressed={currentlySelected}
       >
-        {/* Status Indicators */}
+        {/* Generation Badge - Moved to top left corner */}
+        <div className="absolute -top-2 -left-2">
+          <div className={`w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center text-white shadow-sm ${
+            getGenerationBadgeColor()
+          }`}>
+            {member.generation}
+          </div>
+        </div>
+
+        {/* Status Indicators - Keep in top right */}
         <div className="absolute -top-2 -right-2 flex space-x-1 z-10">
           {member.maritalStatus === 'married' && (
             <div className="w-5 h-5 bg-yellow-400 rounded-full border-2 border-white flex items-center justify-center shadow-sm">
-              <span className="text-xs\" aria-hidden="true">💍</span>
+              <span className="text-xs" aria-hidden="true">💍</span>
             </div>
           )}
           {!member.isAlive && (
@@ -160,36 +169,36 @@ export const MemberCard: React.FC<MemberCardProps> = ({
           </div>
         </div>
 
-        {/* Info */}
+        {/* Info - Updated layout like image */}
         <div className="px-3 pb-4 text-center">
+          {/* Nickname first (if exists) */}
+          {member.nickname && (
+            <p className="text-xs text-gray-500 mb-1 italic">
+              ({member.nickname})
+            </p>
+          )}
+          
+          {/* Full name */}
           <h3 className={`font-bold text-gray-900 ${cardSize.text} leading-tight mb-1 truncate`}>
             {member.name}
           </h3>
-          {member.nickname && (
-            <p className="text-xs text-gray-500 mb-1 italic truncate">
-              "{member.nickname}"
+          
+          {/* Birth year and age */}
+          <div className="space-y-0.5">
+            <p className="text-xs text-gray-600">
+              {getYearDisplay()}
             </p>
-          )}
-          <p className="text-xs text-gray-600 mb-1">
-            {getYearDisplay()}
-          </p>
-          <p className="text-xs text-gray-500">
-            {calculateAge()} tahun
-          </p>
-          {member.profession && (
+            <p className="text-xs text-gray-500">
+              {calculateAge()} tahun
+            </p>
+          </div>
+          
+          {/* Profession (if exists and space allows) */}
+          {member.profession && size !== 'small' && (
             <p className="text-xs text-gray-500 mt-1 truncate">
               {member.profession}
             </p>
           )}
-        </div>
-
-        {/* Generation Badge */}
-        <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
-          <div className={`w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center text-white shadow-sm ${
-            getGenerationBadgeColor()
-          }`}>
-            {member.generation}
-          </div>
         </div>
 
         {/* Connection Points for Lines */}

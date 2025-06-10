@@ -2,6 +2,7 @@ import React from 'react';
 import { TreeCanvas } from './TreeCanvas';
 import { CardView } from './CardView';
 import { ListView } from './ListView';
+import { ReactFlowTreeView } from './ReactFlowTreeView';
 import { useFamilyStore } from '../../store/familyStore';
 
 export const FamilyTreeView: React.FC = () => {
@@ -9,7 +10,7 @@ export const FamilyTreeView: React.FC = () => {
 
   return (
     <div className="flex-1 flex flex-col">
-      {viewMode.type === 'tree' && <TreeCanvas />}
+      {viewMode.type === 'tree' && <ReactFlowTreeView />}
       {viewMode.type === 'card' && <CardView />}
       {viewMode.type === 'list' && <ListView />}
     </div>

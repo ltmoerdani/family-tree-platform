@@ -99,15 +99,6 @@ export const CanvasControls: React.FC = () => {
                 <span className="text-gray-700">Hubungan Keluarga</span>
               </div>
               <div className="flex items-center space-x-2">
-                <div 
-                  className="w-4 h-0.5 bg-red-500 flex-shrink-0"
-                  style={{ 
-                    backgroundImage: 'repeating-linear-gradient(to right, transparent, transparent 1px, #EF4444 1px, #EF4444 2px)' 
-                  }}
-                ></div>
-                <span className="text-gray-700">Pernikahan</span>
-              </div>
-              <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 bg-yellow-400 rounded-full text-xs flex items-center justify-center flex-shrink-0">
                   💍
                 </div>

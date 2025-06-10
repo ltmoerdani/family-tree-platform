@@ -35,6 +35,31 @@ const sortMembersByRelationships = (members: FamilyMember[]): FamilyMember[] => 
   });
 };
 
+// Helper function to sort members placing spouses adjacent
+const sortMembersBySpouses = (members: FamilyMember[]): FamilyMember[] => {
+  const sorted: FamilyMember[] = [];
+  const processed = new Set<string>();
+  
+  members.forEach(member => {
+    if (processed.has(member.id)) return;
+    
+    // Add member
+    sorted.push(member);
+    processed.add(member.id);
+    
+    // If member has spouse in same generation, add spouse right after
+    if (member.spouseId) {
+      const spouse = members.find(m => m.id === member.spouseId);
+      if (spouse && !processed.has(spouse.id)) {
+        sorted.push(spouse);
+        processed.add(spouse.id);
+      }
+    }
+  });
+  
+  return sorted;
+};
+
 export const TreeCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const { members, viewMode, editMode, setEditMode, setViewMode, selectedMember, setSelectedMember } = useFamilyStore();
@@ -67,10 +92,10 @@ export const TreeCanvas: React.FC = () => {
       generationGroups[member.generation].push(member);
     });
 
-    // Improved spacing calculations
-    const generationHeight = 320; // Increased for better spacing
-    const cardSpacing = 280; // Increased for better card separation
-    const padding = 300; // Increased padding
+    // Significantly increased spacing for better bracket visibility
+    const generationHeight = 400; // Much wider spacing between generations
+    const cardSpacing = 320; // Increased card separation
+    const padding = 400; // Increased padding
 
     const maxMembersInGeneration = Math.max(
       ...Object.values(generationGroups).map(gen => gen.length)
@@ -81,8 +106,8 @@ export const TreeCanvas: React.FC = () => {
     const requiredHeight = (numberOfGenerations - 1) * generationHeight + (padding * 2);
 
     return {
-      width: Math.max(1400, requiredWidth), // Increased minimum width
-      height: Math.max(900, requiredHeight) // Increased minimum height
+      width: Math.max(1600, requiredWidth), // Increased minimum width
+      height: Math.max(1200, requiredHeight) // Increased minimum height
     };
   }, [members]);
 
@@ -127,8 +152,8 @@ export const TreeCanvas: React.FC = () => {
 
     const centerX = canvasDimensions.width / 2;
     const centerY = canvasDimensions.height / 2;
-    const generationHeight = 320; // Increased spacing
-    const cardSpacing = 280; // Increased spacing
+    const generationHeight = 400;
+    const cardSpacing = 320;
 
     const generationKeys = Object.keys(generationGroups).map(Number).sort((a, b) => a - b);
     const middleGenIndex = Math.floor(generationKeys.length / 2);
@@ -136,33 +161,27 @@ export const TreeCanvas: React.FC = () => {
     generationKeys.forEach((generation, indexInArray) => {
       const membersInGen = generationGroups[generation];
       
-      // Sort members in generation by family relationships
-      const sortedMembers = sortMembersByRelationships(membersInGen);
+      // Sort members to place spouses next to each other
+      const sortedMembers = sortMembersBySpouses(membersInGen);
       
-      // Improved positioning algorithm
       const totalWidth = (sortedMembers.length - 1) * cardSpacing;
       const relativeGenIndex = indexInArray - middleGenIndex;
       const y = centerY + (relativeGenIndex * generationHeight);
       
-      // Better horizontal distribution
       if (sortedMembers.length === 1) {
-        // Single member - center it
         positions[sortedMembers[0].id] = { x: centerX, y };
       } else {
-        // Multiple members - distribute evenly
         const startX = centerX - (totalWidth / 2);
         
         sortedMembers.forEach((member, memberIndex) => {
           const x = startX + (memberIndex * cardSpacing);
-          positions[member.id] = { x, y };
+          positions[member.id] = { x, y }; // Same Y for all members in generation
         });
       }
     });
 
     return positions;
   }, [members, canvasDimensions]);
-
-  const positions = calculatePositions();
 
   // Utility function to calculate distance between two touch points
   const getTouchDistance = (touches: TouchList): number => {
@@ -491,7 +510,7 @@ export const TreeCanvas: React.FC = () => {
             })}
           </div>
 
-          {/* Generation Labels */}
+          {/* Generation Labels - Updated positioning */}
           {Object.keys(
             filteredMembers.reduce((acc, member) => {
               acc[member.generation] = true;
@@ -506,7 +525,7 @@ export const TreeCanvas: React.FC = () => {
                   : 'bg-white border-gray-300 text-gray-600'
               }`}
               style={{
-                top: 150 + ((parseInt(generation) - 1) * 320),
+                top: 200 + ((parseInt(generation) - 1) * 400), // Updated to match new spacing
               }}
             >
               Generasi {generation}
