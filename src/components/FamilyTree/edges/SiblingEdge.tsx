@@ -1,6 +1,13 @@
 import React from 'react';
 import { EdgeProps } from 'reactflow';
 
+/**
+ * SiblingEdge component renders a bracket-style connection between siblings
+ * Uses dashed lines to distinguish from parent-child relationships
+ *
+ * @param props - EdgeProps containing connection coordinates and styling
+ * @returns JSX element representing the sibling connection
+ */
 export const SiblingEdge: React.FC<EdgeProps> = ({
   id,
   sourceX,
@@ -9,10 +16,15 @@ export const SiblingEdge: React.FC<EdgeProps> = ({
   targetY,
   style = {},
 }) => {
-  // Create bracket-style connection for siblings
-  const createSiblingPath = () => {
+  /**
+   * Creates a bracket-style path for sibling connections
+   * Connects siblings with a horizontal line above both nodes
+   *
+   * @returns SVG path string for the sibling bracket
+   */
+  const createSiblingPath = (): string => {
     const midY = Math.min(sourceY, targetY) - 30; // Above both nodes
-    
+
     return `
       M ${sourceX} ${sourceY}
       L ${sourceX} ${midY}
@@ -33,6 +45,7 @@ export const SiblingEdge: React.FC<EdgeProps> = ({
       }}
       className="react-flow__edge-path"
       d={createSiblingPath()}
+      strokeLinecap="round"
     />
   );
 };

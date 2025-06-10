@@ -8,34 +8,10 @@ import { useFamilyStore } from '../../store/familyStore';
 import { FamilyMember } from '../../types/family';
 
 /**
- * Utility function to sort family members by relationships
+ * Helper function to sort members placing spouses adjacent
  * @param members - Array of family members to sort
- * @returns Sorted array of family members
+ * @returns Sorted array with spouses placed next to each other
  */
-const sortMembersByRelationships = (members: FamilyMember[]): FamilyMember[] => {
-  return [...members].sort((a, b) => {
-    // Prioritize married couples to be next to each other
-    if (a.spouseId === b.id || b.spouseId === a.id) {
-      return a.spouseId === b.id ? -1 : 1;
-    }
-    
-    // Group siblings together
-    if (a.parentIds && b.parentIds) {
-      const aSortedParents = [...a.parentIds].sort((x, y) => x.localeCompare(y));
-      const bSortedParents = [...b.parentIds].sort((x, y) => x.localeCompare(y));
-      const aParents = aSortedParents.join(',');
-      const bParents = bSortedParents.join(',');
-      
-      if (aParents === bParents) {
-        return a.name.localeCompare(b.name);
-      }
-    }
-    
-    return a.name.localeCompare(b.name);
-  });
-};
-
-// Helper function to sort members placing spouses adjacent
 const sortMembersBySpouses = (members: FamilyMember[]): FamilyMember[] => {
   const sorted: FamilyMember[] = [];
   const processed = new Set<string>();
@@ -77,7 +53,10 @@ export const TreeCanvas: React.FC = () => {
   const [lastWheelTime, setLastWheelTime] = useState(0);
   const [accumulatedDelta, setAccumulatedDelta] = useState(0);
 
-  // Calculate dynamic canvas dimensions based on content
+  /**
+   * Calculate dynamic canvas dimensions based on content
+   * @returns Object with width and height for the canvas
+   */
   const calculateCanvasDimensions = useCallback((): { width: number; height: number } => {
     if (members.length === 0) {
       return { width: 1200, height: 800 };
@@ -113,30 +92,11 @@ export const TreeCanvas: React.FC = () => {
 
   const canvasDimensions = calculateCanvasDimensions();
 
-  // Initialize canvas to center position on first load
-  useEffect(() => {
-    if (canvasRef.current && !isInitialPositionSet && members.length > 0) {
-      const rect = canvasRef.current.getBoundingClientRect();
-      const viewportCenterX = rect.width / 2;
-      const viewportCenterY = rect.height / 2;
-      
-      const canvasCenterX = canvasDimensions.width / 2;
-      const canvasCenterY = canvasDimensions.height / 2;
-      
-      const zoomScale = viewMode.zoom / 100;
-      
-      const initialPanOffset = {
-        x: viewportCenterX - (canvasCenterX * zoomScale),
-        y: viewportCenterY - (canvasCenterY * zoomScale)
-      };
-      
-      setPanOffset(initialPanOffset);
-      setIsInitialPositionSet(true);
-    }
-  }, [isInitialPositionSet, canvasDimensions, viewMode.zoom, members.length]);
-
-  // Calculate positions for family members with improved layout
-  const calculatePositions = useCallback((): Record<string, { x: number; y: number }> => {
+  /**
+   * Calculate positions for family members with improved layout
+   * @returns Object mapping member IDs to their x,y positions
+   */
+  const calculateMemberPositions = useCallback((): Record<string, { x: number; y: number }> => {
     const positions: Record<string, { x: number; y: number }> = {};
     
     if (members.length === 0) return positions;
@@ -183,7 +143,36 @@ export const TreeCanvas: React.FC = () => {
     return positions;
   }, [members, canvasDimensions]);
 
-  // Utility function to calculate distance between two touch points
+  // Calculate member positions
+  const memberPositions = calculateMemberPositions();
+
+  // Initialize canvas to center position on first load
+  useEffect(() => {
+    if (canvasRef.current && !isInitialPositionSet && members.length > 0) {
+      const rect = canvasRef.current.getBoundingClientRect();
+      const viewportCenterX = rect.width / 2;
+      const viewportCenterY = rect.height / 2;
+      
+      const canvasCenterX = canvasDimensions.width / 2;
+      const canvasCenterY = canvasDimensions.height / 2;
+      
+      const zoomScale = viewMode.zoom / 100;
+      
+      const initialPanOffset = {
+        x: viewportCenterX - (canvasCenterX * zoomScale),
+        y: viewportCenterY - (canvasCenterY * zoomScale)
+      };
+      
+      setPanOffset(initialPanOffset);
+      setIsInitialPositionSet(true);
+    }
+  }, [isInitialPositionSet, canvasDimensions, viewMode.zoom, members.length]);
+
+  /**
+   * Utility function to calculate distance between two touch points
+   * @param touches - TouchList from touch event
+   * @returns Distance between first two touch points
+   */
   const getTouchDistance = (touches: TouchList): number => {
     if (touches.length < 2) return 0;
     const touch1 = touches[0];
@@ -193,7 +182,13 @@ export const TreeCanvas: React.FC = () => {
     return Math.sqrt(dx * dx + dy * dy);
   };
 
-  // Zoom function with boundaries
+  /**
+   * Zoom function with boundaries and smooth scaling
+   * @param delta - Zoom direction and intensity
+   * @param centerX - X coordinate for zoom center
+   * @param centerY - Y coordinate for zoom center
+   * @param isWheel - Whether zoom is from wheel event
+   */
   const handleZoom = useCallback((delta: number, centerX?: number, centerY?: number, isWheel: boolean = false) => {
     const currentZoom = viewMode.zoom;
     
@@ -479,7 +474,7 @@ export const TreeCanvas: React.FC = () => {
           {/* Family Tree Connections */}
           <FamilyTreeConnections
             members={filteredMembers}
-            positions={positions}
+            positions={memberPositions}
             canvasWidth={canvasDimensions.width}
             canvasHeight={canvasDimensions.height}
           />
@@ -487,7 +482,7 @@ export const TreeCanvas: React.FC = () => {
           {/* Render Member Cards */}
           <div style={{ position: 'relative', zIndex: 10 }} className="pointer-events-auto">
             {filteredMembers.map(member => {
-              const position = positions[member.id];
+              const position = memberPositions[member.id];
               if (!position) return null;
 
               return (

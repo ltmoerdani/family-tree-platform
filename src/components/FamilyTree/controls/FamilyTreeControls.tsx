@@ -1,6 +1,6 @@
 import React from 'react';
+import { BackgroundVariant } from 'reactflow';
 import { 
-  RotateCcw, 
   Maximize, 
   ArrowUpDown, 
   ArrowLeftRight,
@@ -17,9 +17,9 @@ interface FamilyTreeControlsProps {
   onAutoLayout: () => void;
   onFitView: () => void;
   currentLayout: 'TB' | 'LR';
-  gridType?: 'dots' | 'lines' | 'cross' | 'subtle';
+  gridType?: BackgroundVariant;
   showGrid?: boolean;
-  onGridTypeChange?: (type: 'dots' | 'lines' | 'cross' | 'subtle') => void;
+  onGridTypeChange?: (type: BackgroundVariant) => void;
   onGridToggle?: (show: boolean) => void;
 }
 
@@ -33,6 +33,16 @@ export const FamilyTreeControls: React.FC<FamilyTreeControlsProps> = ({
   onGridTypeChange,
   onGridToggle,
 }) => {
+  /**
+   * Handles grid type change with proper type safety
+   * @param type - The grid type to set
+   */
+  const handleGridTypeChange = (type: string) => {
+    if (onGridTypeChange) {
+      onGridTypeChange(type as BackgroundVariant);
+    }
+  };
+
   return (
     <div className="bg-white border border-gray-300 rounded-lg shadow-lg p-2 space-y-2">
       <div className="text-xs font-medium text-gray-700 px-2">Layout Controls</div>
@@ -95,19 +105,7 @@ export const FamilyTreeControls: React.FC<FamilyTreeControlsProps> = ({
           {showGrid && (
             <div className="grid grid-cols-2 gap-1">
               <button
-                onClick={() => onGridTypeChange('subtle')}
-                className={`p-2 rounded transition-colors text-xs ${
-                  gridType === 'subtle'
-                    ? 'bg-green-100 text-green-600'
-                    : 'hover:bg-gray-100 text-gray-600'
-                }`}
-                title="Subtle Grid (Recommended)"
-              >
-                Subtle
-              </button>
-
-              <button
-                onClick={() => onGridTypeChange('dots')}
+                onClick={() => handleGridTypeChange('dots')}
                 className={`p-2 rounded transition-colors ${
                   gridType === 'dots'
                     ? 'bg-green-100 text-green-600'
@@ -119,7 +117,7 @@ export const FamilyTreeControls: React.FC<FamilyTreeControlsProps> = ({
               </button>
               
               <button
-                onClick={() => onGridTypeChange('lines')}
+                onClick={() => handleGridTypeChange('lines')}
                 className={`p-2 rounded transition-colors ${
                   gridType === 'lines'
                     ? 'bg-green-100 text-green-600'
@@ -131,7 +129,7 @@ export const FamilyTreeControls: React.FC<FamilyTreeControlsProps> = ({
               </button>
               
               <button
-                onClick={() => onGridTypeChange('cross')}
+                onClick={() => handleGridTypeChange('cross')}
                 className={`p-2 rounded transition-colors ${
                   gridType === 'cross'
                     ? 'bg-green-100 text-green-600'

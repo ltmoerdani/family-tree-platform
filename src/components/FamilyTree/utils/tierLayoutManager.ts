@@ -1,4 +1,4 @@
-import { Node, Edge } from 'reactflow';
+import { Node } from 'reactflow';
 import { FamilyMember } from '../../../types/family';
 
 export interface TierLayout {
@@ -10,10 +10,11 @@ export interface TierLayout {
 /**
  * Calculate tier-based layout for family tree
  * Each generation has fixed Y position, nodes can only move horizontally
+ * @param nodes - Array of family member nodes to layout
+ * @returns Object containing layouted nodes and tier information
  */
 export const calculateTierLayout = (
-  nodes: Node[],
-  edges: Edge[]
+  nodes: Node[]
 ): { layoutedNodes: Node[]; tiers: TierLayout[] } => {
   const TIER_HEIGHT = 280;
   const NODE_WIDTH = 250;
@@ -25,7 +26,7 @@ export const calculateTierLayout = (
   
   nodes.forEach(node => {
     const member = node.data?.member as FamilyMember;
-    const generation = member?.generation || 0;
+    const generation = member?.generation ?? 0;
     
     if (!generationMap.has(generation)) {
       generationMap.set(generation, []);
@@ -52,7 +53,7 @@ export const calculateTierLayout = (
       if (memberA.spouseId === memberB.id) return -1;
       if (memberB.spouseId === memberA.id) return 1;
       
-      // Otherwise sort by name
+      // Otherwise sort by name using locale comparison for proper sorting
       return memberA.name.localeCompare(memberB.name);
     });
     
@@ -88,6 +89,10 @@ export const calculateTierLayout = (
 
 /**
  * Constrain node movement to horizontal only within its tier
+ * @param nodeId - ID of the node being moved
+ * @param newPosition - Attempted new position
+ * @param tiers - Array of tier layout information
+ * @returns Constrained position with fixed Y coordinate
  */
 export const constrainNodeMovement = (
   nodeId: string,

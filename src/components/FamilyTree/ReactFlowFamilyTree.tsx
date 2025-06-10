@@ -14,6 +14,9 @@ import ReactFlow, {
   ReactFlowProvider,
   useReactFlow,
   Panel,
+  Position,
+  BackgroundVariant,
+  NodeChange,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import dagre from 'dagre';
@@ -25,7 +28,6 @@ import { SiblingEdge } from './edges/SiblingEdge';
 import { ExportControls } from './controls/ExportControls';
 import { FamilyTreeControls } from './controls/FamilyTreeControls';
 import { MemberEditModal } from './modals/MemberEditModal';
-import { useFamilyStore } from '../../store/familyStore';
 import { calculateTierLayout, constrainNodeMovement, TierLayout } from './utils/tierLayoutManager';
 
 // Define custom node and edge types
@@ -86,8 +88,8 @@ const getLayoutedElements = (
     const nodeWithPosition = dagreGraph.node(node.id);
     const newNode = {
       ...node,
-      targetPosition: isHorizontal ? 'left' : 'top',
-      sourcePosition: isHorizontal ? 'right' : 'bottom',
+      targetPosition: isHorizontal ? Position.Left : Position.Top,
+      sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
       position: {
         x: nodeWithPosition.x - nodeWidth / 2,
         y: nodeWithPosition.y - nodeHeight / 2,
@@ -104,11 +106,10 @@ const getLayoutedElements = (
  * Converts family members to React Flow nodes with tier-based positioning
  */
 const getTierLayoutedElements = (
-  nodes: Node[],
-  edges: Edge[]
+  nodes: Node[]
 ): { nodes: Node[]; edges: Edge[]; tiers: TierLayout[] } => {
-  const { layoutedNodes, tiers } = calculateTierLayout(nodes, edges);
-  return { nodes: layoutedNodes, edges, tiers };
+  const { layoutedNodes, tiers } = calculateTierLayout(nodes);
+  return { nodes: layoutedNodes, edges: [], tiers };
 };
 
 /**
@@ -121,16 +122,16 @@ const convertMembersToNodes = (members: FamilyMember[]): Node[] => {
     position: { x: 0, y: 0 }, // Will be set by layout algorithm
     data: {
       member,
-      onEdit: (member: FamilyMember) => {
+      onEdit: () => {
         // Handle edit - will be passed from parent
       },
-      onDelete: (memberId: string) => {
+      onDelete: () => {
         // Handle delete - will be passed from parent
       },
-      onAddChild: (parentId: string) => {
+      onAddChild: () => {
         // Handle add child - will be passed from parent
       },
-      onAddSpouse: (memberId: string) => {
+      onAddSpouse: () => {
         // Handle add spouse - will be passed from parent
       },
     },
@@ -173,7 +174,8 @@ const createFamilyEdges = (members: FamilyMember[]): Edge[] => {
       });
 
       // Group siblings for bracket connections
-      const parentKey = member.parentIds.sort().join('-');
+      const sortedParentIds = [...member.parentIds].sort((a, b) => a.localeCompare(b));
+      const parentKey = sortedParentIds.join('-');
       if (!siblingsMap.has(parentKey)) {
         siblingsMap.set(parentKey, []);
       }
@@ -199,6 +201,8 @@ const createFamilyEdges = (members: FamilyMember[]): Edge[] => {
   return edges;
 };
 
+type GridPatternType = 'dots' | 'lines' | 'cross';
+
 const ReactFlowFamilyTreeInner: React.FC<ReactFlowFamilyTreeProps> = ({
   members,
   onMemberUpdate,
@@ -211,7 +215,7 @@ const ReactFlowFamilyTreeInner: React.FC<ReactFlowFamilyTreeProps> = ({
   const [editingMember, setEditingMember] = useState<FamilyMember | null>(null);
   const [layoutDirection, setLayoutDirection] = useState<'TB' | 'LR'>('TB');
   const [tiers, setTiers] = useState<TierLayout[]>([]);
-  const [gridType, setGridType] = useState<'dots' | 'lines' | 'cross'>('lines');
+  const [gridType, setGridType] = useState<GridPatternType>('lines');
   const [showGrid, setShowGrid] = useState(true);
 
   // Convert members to nodes and edges
@@ -228,17 +232,19 @@ const ReactFlowFamilyTreeInner: React.FC<ReactFlowFamilyTreeProps> = ({
         onDelete: onMemberDelete,
         onAddChild: (parentId: string) => {
           if (onMemberAdd) {
+            const parentMember = node.data.member;
             onMemberAdd({
               parentIds: [parentId],
-              generation: (node.data.member.generation || 0) + 1,
+              generation: (parentMember?.generation ?? 0) + 1,
             });
           }
         },
         onAddSpouse: (memberId: string) => {
           if (onMemberAdd) {
+            const parentMember = node.data.member;
             onMemberAdd({
               spouseId: memberId,
-              generation: node.data.member.generation || 0,
+              generation: parentMember?.generation ?? 0,
             });
           }
         },
@@ -255,13 +261,12 @@ const ReactFlowFamilyTreeInner: React.FC<ReactFlowFamilyTreeProps> = ({
   useEffect(() => {
     if (layoutDirection === 'TB') {
       // Use tier-based layout for vertical arrangement
-      const { nodes: layoutedNodes, edges: layoutedEdges, tiers: calculatedTiers } = getTierLayoutedElements(
-        initialNodes,
-        initialEdges
+      const { nodes: layoutedNodes, tiers: calculatedTiers } = getTierLayoutedElements(
+        initialNodes
       );
 
       setNodes(layoutedNodes);
-      setEdges(layoutedEdges);
+      setEdges(initialEdges); // Use original edges instead of empty array
       setTiers(calculatedTiers);
     } else {
       // Use dagre layout for horizontal arrangement
@@ -282,10 +287,10 @@ const ReactFlowFamilyTreeInner: React.FC<ReactFlowFamilyTreeProps> = ({
   }, [initialNodes, initialEdges, layoutDirection, setNodes, setEdges, fitView]);
 
   // Custom node change handler to constrain movement
-  const handleNodesChange = useCallback((changes: any[]) => {
+  const handleNodesChange = useCallback((changes: NodeChange[]) => {
     if (layoutDirection === 'TB' && tiers.length > 0) {
       const constrainedChanges = changes.map(change => {
-        if (change.type === 'position' && change.position) {
+        if (change.type === 'position' && 'position' in change && change.position) {
           const constrainedPosition = constrainNodeMovement(
             change.id,
             change.position,
@@ -315,13 +320,12 @@ const ReactFlowFamilyTreeInner: React.FC<ReactFlowFamilyTreeProps> = ({
 
   const handleAutoLayout = useCallback(() => {
     if (layoutDirection === 'TB') {
-      const { nodes: layoutedNodes, edges: layoutedEdges, tiers: calculatedTiers } = getTierLayoutedElements(
-        getNodes(),
-        getEdges()
+      const { nodes: layoutedNodes, tiers: calculatedTiers } = getTierLayoutedElements(
+        getNodes()
       );
 
       setNodes(layoutedNodes);
-      setEdges(layoutedEdges);
+      setEdges(getEdges()); // Keep existing edges
       setTiers(calculatedTiers);
     } else {
       const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
@@ -343,6 +347,45 @@ const ReactFlowFamilyTreeInner: React.FC<ReactFlowFamilyTreeProps> = ({
     fitView({ padding: 0.2, duration: 800 });
   }, [fitView]);
 
+  /**
+   * Safely converts grid pattern type to BackgroundVariant
+   * @param pattern - The grid pattern type
+   * @returns Valid BackgroundVariant
+   */
+  const convertToBackgroundVariant = (pattern: GridPatternType): BackgroundVariant => {
+    return pattern as BackgroundVariant;
+  };
+
+  // Helper function to get background color for grid
+  const getGridBackgroundColor = (variant: BackgroundVariant): string => {
+    switch (variant) {
+      case 'dots':
+        return '#d1d5db';
+      case 'cross':
+        return '#e5e7eb';
+      default:
+        return '#e5e7eb';
+    }
+  };
+
+  // Helper function to get background gap
+  const getGridGap = (variant: BackgroundVariant): number => {
+    const baseGap = variant === 'lines' ? 25 : 30;
+    return baseGap;
+  };
+
+  // Helper function to get background size
+  const getGridSize = (variant: BackgroundVariant): number => {
+    switch (variant) {
+      case 'dots':
+        return 1;
+      case 'cross':
+        return 0.5;
+      default:
+        return 0.5;
+    }
+  };
+
   return (
     <div className="w-full h-full relative">
       <ReactFlow
@@ -360,15 +403,15 @@ const ReactFlowFamilyTreeInner: React.FC<ReactFlowFamilyTreeProps> = ({
         maxZoom={2}
         defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
         snapToGrid={layoutDirection === 'TB'}
-        snapGrid={[25, 50]} // Adjusted snap grid for better alignment with new spacing
+        snapGrid={[25, 50]}
       >
         {/* Enhanced Background with softer grid pattern */}
         {showGrid && (
           <Background 
-            variant={gridType}
-            gap={gridType === 'lines' ? 25 : 30} // Slightly increased gap for better proportion
-            size={gridType === 'lines' ? 0.5 : gridType === 'dots' ? 1 : 0.5}
-            color={gridType === 'lines' ? '#e5e7eb' : gridType === 'dots' ? '#d1d5db' : '#e5e7eb'}
+            variant={convertToBackgroundVariant(gridType)}
+            gap={getGridGap(convertToBackgroundVariant(gridType))}
+            size={getGridSize(convertToBackgroundVariant(gridType))}
+            color={getGridBackgroundColor(convertToBackgroundVariant(gridType))}
             style={{
               backgroundColor: '#fafafa',
               opacity: 0.4,
@@ -379,8 +422,8 @@ const ReactFlowFamilyTreeInner: React.FC<ReactFlowFamilyTreeProps> = ({
         {/* Major grid lines - much softer with adjusted spacing */}
         {showGrid && gridType === 'lines' && (
           <Background 
-            variant="lines"
-            gap={125} // Increased to match new tier spacing
+            variant={convertToBackgroundVariant('lines')}
+            gap={125}
             size={1}
             color="#d1d5db"
             offset={0}
@@ -418,9 +461,11 @@ const ReactFlowFamilyTreeInner: React.FC<ReactFlowFamilyTreeProps> = ({
             onAutoLayout={handleAutoLayout}
             onFitView={handleFitView}
             currentLayout={layoutDirection}
-            gridType={gridType}
+            gridType={convertToBackgroundVariant(gridType)}
             showGrid={showGrid}
-            onGridTypeChange={setGridType}
+            onGridTypeChange={(type: BackgroundVariant) => {
+              setGridType(type as GridPatternType);
+            }}
             onGridToggle={setShowGrid}
           />
         </Panel>

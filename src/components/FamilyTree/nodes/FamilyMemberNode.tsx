@@ -5,10 +5,8 @@ import {
   Trash2, 
   UserPlus, 
   Heart, 
-  Calendar,
   MapPin,
-  Briefcase,
-  MoreVertical
+  Briefcase
 } from 'lucide-react';
 import { FamilyMember } from '../../../types/family';
 
@@ -26,11 +24,13 @@ export const FamilyMemberNode = memo<NodeProps<FamilyMemberNodeData>>(({ data, s
 
   const calculateAge = () => {
     const birthYear = new Date(member.birthDate).getFullYear();
-    const endYear = member.isAlive 
-      ? new Date().getFullYear() 
-      : member.deathDate 
-        ? new Date(member.deathDate).getFullYear() 
-        : new Date().getFullYear();
+    const getCurrentYear = () => {
+      if (member.isAlive) {
+        return new Date().getFullYear();
+      }
+      return member.deathDate ? new Date(member.deathDate).getFullYear() : new Date().getFullYear();
+    };
+    const endYear = getCurrentYear();
     return endYear - birthYear;
   };
 
@@ -47,6 +47,51 @@ export const FamilyMemberNode = memo<NodeProps<FamilyMemberNodeData>>(({ data, s
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     setShowContextMenu(!showContextMenu);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onEdit(member);
+    } else if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
+      e.preventDefault();
+      setShowContextMenu(!showContextMenu);
+    }
+  };
+
+  // Helper function to get card border class
+  const getCardBorderClass = () => {
+    const baseClasses = 'w-48 bg-white rounded-lg shadow-lg border-2 transition-all duration-200 cursor-pointer group transform hover:-translate-y-1';
+    const selectedClass = selected ? 'border-blue-500 shadow-xl' : 'border-gray-200 hover:border-gray-300';
+    const genderClass = member.gender === 'male' ? 'border-l-4 border-l-blue-500' : 'border-l-4 border-l-pink-500';
+    const aliveClass = !member.isAlive ? 'opacity-75 bg-gray-50' : '';
+    
+    return `${baseClasses} ${selectedClass} ${genderClass} ${aliveClass}`;
+  };
+
+  // Helper function to get generation badge color
+  const getGenerationBadgeClass = () => {
+    const baseClass = 'w-8 h-8 rounded-full text-sm font-bold flex items-center justify-center text-white shadow-sm';
+    const colorClass = member.gender === 'male' ? 'bg-blue-500' : 'bg-pink-500';
+    return `${baseClass} ${colorClass}`;
+  };
+
+  /**
+   * Gets the appropriate background color class for the member's avatar
+   * @returns CSS class string for avatar background
+   */
+  const getAvatarBackgroundClass = (): string => {
+    return member.gender === 'male' ? 'bg-blue-400' : 'bg-pink-400';
+  };
+
+  /**
+   * Gets the complete CSS class string for the avatar container
+   * @returns Complete CSS class string including all avatar styles
+   */
+  const getAvatarContainerClass = (): string => {
+    const baseClasses = 'w-full h-full flex items-center justify-center text-white font-bold text-xl';
+    const backgroundClass = getAvatarBackgroundClass();
+    return `${baseClasses} ${backgroundClass}`;
   };
 
   return (
@@ -78,21 +123,24 @@ export const FamilyMemberNode = memo<NodeProps<FamilyMemberNodeData>>(({ data, s
       />
 
       {/* Main card */}
-      <div
-        className={`
-          w-48 bg-white rounded-lg shadow-lg border-2 transition-all duration-200 cursor-pointer
-          ${selected ? 'border-blue-500 shadow-xl' : 'border-gray-200 hover:border-gray-300'}
-          ${member.gender === 'male' ? 'border-l-4 border-l-blue-500' : 'border-l-4 border-l-pink-500'}
-          ${!member.isAlive ? 'opacity-75 bg-gray-50' : ''}
-        `}
+      <button
+        type="button"
+        className={getCardBorderClass()}
         onContextMenu={handleContextMenu}
         onDoubleClick={() => onEdit(member)}
+        onKeyDown={handleKeyDown}
+        aria-label={[
+          `Family member ${member.name}`,
+          `${calculateAge()} years old`,
+          `generation ${member.generation}`,
+          member.profession ?? null
+        ].filter(Boolean).join(', ')}
+        aria-describedby={`member-details-${member.id}`}
+        tabIndex={0}
       >
         {/* Generation badge - Moved to top left corner */}
         <div className="absolute -top-2 -left-2">
-          <div className={`w-8 h-8 rounded-full text-sm font-bold flex items-center justify-center text-white shadow-sm ${
-            member.gender === 'male' ? 'bg-blue-500' : 'bg-pink-500'
-          }`}>
+          <div className={getGenerationBadgeClass()}>
             {member.generation}
           </div>
         </div>
@@ -123,11 +171,7 @@ export const FamilyMemberNode = memo<NodeProps<FamilyMemberNodeData>>(({ data, s
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div 
-                  className={`w-full h-full flex items-center justify-center text-white font-bold text-xl ${
-                    member.gender === 'male' ? 'bg-blue-400' : 'bg-pink-400'
-                  }`}
-                >
+                <div className={getAvatarContainerClass()}>
                   {member.name.charAt(0)}
                 </div>
               )}
@@ -135,7 +179,7 @@ export const FamilyMemberNode = memo<NodeProps<FamilyMemberNodeData>>(({ data, s
           </div>
 
           {/* Member info - New layout as per image */}
-          <div className="text-center space-y-1">
+          <div className="text-center space-y-1" id={`member-details-${member.id}`}>
             {/* Nickname first (if exists) */}
             {member.nickname && (
               <p className="text-sm text-gray-500 italic">
@@ -180,14 +224,22 @@ export const FamilyMemberNode = memo<NodeProps<FamilyMemberNodeData>>(({ data, s
             </div>
           )}
         </div>
-      </div>
+      </button>
 
       {/* Context menu */}
       {showContextMenu && (
         <>
-          <div 
-            className="fixed inset-0 z-40"
+          <button
+            type="button"
+            className="fixed inset-0 z-40 bg-transparent cursor-default border-none p-0 m-0 outline-none"
             onClick={() => setShowContextMenu(false)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+                setShowContextMenu(false);
+              }
+            }}
+            aria-label="Close context menu"
+            tabIndex={0}
           />
           <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-2">
             <button

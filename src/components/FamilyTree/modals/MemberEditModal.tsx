@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, Calendar, MapPin, Briefcase, Mail, Phone } from 'lucide-react';
+import { X, User, Calendar, MapPin, Briefcase, Phone } from 'lucide-react';
 import { FamilyMember } from '../../../types/family';
 
 interface MemberEditModalProps {
@@ -19,28 +19,29 @@ export const MemberEditModal: React.FC<MemberEditModalProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    setFormData(member);
-  }, [member]);
-
-  if (!isOpen) return null;
+    if (isOpen) {
+      setFormData(member);
+      setErrors({});
+    }
+  }, [member, isOpen]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = 'Name is required';
+      newErrors.name = 'Nama harus diisi';
     }
 
     if (!formData.birthDate) {
-      newErrors.birthDate = 'Birth date is required';
+      newErrors.birthDate = 'Tanggal lahir harus diisi';
     }
 
-    if (!formData.isAlive && formData.deathDate && formData.birthDate) {
-      const birthDate = new Date(formData.birthDate);
-      const deathDate = new Date(formData.deathDate);
-      if (deathDate < birthDate) {
-        newErrors.deathDate = 'Death date cannot be before birth date';
-      }
+    if (!formData.birthPlace?.trim()) {
+      newErrors.birthPlace = 'Tempat lahir harus diisi';
+    }
+
+    if (!formData.gender) {
+      newErrors.gender = 'Jenis kelamin harus dipilih';
     }
 
     setErrors(newErrors);
@@ -49,56 +50,59 @@ export const MemberEditModal: React.FC<MemberEditModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (validateForm()) {
       onSave(formData);
     }
   };
 
-  const updateFormData = (field: keyof FamilyMember, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
-    }
+  const handleInputChange = (field: keyof FamilyMember, value: string | boolean | number) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-              <User className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">Edit Family Member</h2>
-              <p className="text-sm text-gray-500">Update member information</p>
-            </div>
+          <div className="flex items-center space-x-2">
+            <User className="w-5 h-5 text-blue-600" />
+            <h2 className="text-xl font-semibold text-gray-900">
+              Edit Profil Anggota
+            </h2>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-md hover:bg-gray-100 transition-colors"
+            className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+            aria-label="Tutup modal"
           >
-            <X className="w-5 h-5" />
+            <X className="w-6 h-6" />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Name */}
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Full Name *
+            {/* Full Name */}
+            <div>
+              <label htmlFor="member-name" className="block text-sm font-medium text-gray-700 mb-1">
+                Nama Lengkap *
               </label>
               <input
+                id="member-name"
                 type="text"
                 value={formData.name}
-                onChange={(e) => updateFormData('name', e.target.value)}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                onChange={(e) => handleInputChange('name', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                   errors.name ? 'border-red-500' : 'border-gray-300'
                 }`}
-                placeholder="Enter full name"
+                placeholder="Masukkan nama lengkap"
               />
               {errors.name && (
                 <p className="mt-1 text-sm text-red-600">{errors.name}</p>
@@ -107,218 +111,246 @@ export const MemberEditModal: React.FC<MemberEditModalProps> = ({
 
             {/* Nickname */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Nickname
+              <label htmlFor="member-nickname" className="block text-sm font-medium text-gray-700 mb-1">
+                Nama Panggilan
               </label>
               <input
+                id="member-nickname"
                 type="text"
-                value={formData.nickname || ''}
-                onChange={(e) => updateFormData('nickname', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Nickname or alias"
+                value={formData.nickname ?? ''}
+                onChange={(e) => handleInputChange('nickname', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Nama panggilan sehari-hari"
               />
             </div>
 
             {/* Gender */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Gender *
+              <label htmlFor="member-gender" className="block text-sm font-medium text-gray-700 mb-1">
+                Jenis Kelamin *
               </label>
-              <div className="flex space-x-4">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    value="male"
-                    checked={formData.gender === 'male'}
-                    onChange={(e) => updateFormData('gender', e.target.value)}
-                    className="mr-2 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-gray-700">Male</span>
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    value="female"
-                    checked={formData.gender === 'female'}
-                    onChange={(e) => updateFormData('gender', e.target.value)}
-                    className="mr-2 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-gray-700">Female</span>
-                </label>
-              </div>
+              <select
+                id="member-gender"
+                value={formData.gender}
+                onChange={(e) => handleInputChange('gender', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.gender ? 'border-red-500' : 'border-gray-300'
+                }`}
+              >
+                <option value="">Pilih jenis kelamin</option>
+                <option value="male">Laki-laki</option>
+                <option value="female">Perempuan</option>
+              </select>
+              {errors.gender && (
+                <p className="mt-1 text-sm text-red-600">{errors.gender}</p>
+              )}
             </div>
 
-            {/* Birth Date */}
+            {/* Generation */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Birth Date *
+              <label htmlFor="member-generation" className="block text-sm font-medium text-gray-700 mb-1">
+                Generasi
               </label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                id="member-generation"
+                type="number"
+                min="1"
+                max="10"
+                value={formData.generation}
+                onChange={(e) => handleInputChange('generation', parseInt(e.target.value))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          {/* Birth Information */}
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <Calendar className="w-5 h-5 mr-2 text-blue-600" />
+              Informasi Kelahiran
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label htmlFor="member-birth-date" className="block text-sm font-medium text-gray-700 mb-1">
+                  Tanggal Lahir *
+                </label>
                 <input
+                  id="member-birth-date"
                   type="date"
                   value={formData.birthDate}
-                  onChange={(e) => updateFormData('birthDate', e.target.value)}
-                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  onChange={(e) => handleInputChange('birthDate', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                     errors.birthDate ? 'border-red-500' : 'border-gray-300'
                   }`}
                 />
+                {errors.birthDate && (
+                  <p className="mt-1 text-sm text-red-600">{errors.birthDate}</p>
+                )}
               </div>
-              {errors.birthDate && (
-                <p className="mt-1 text-sm text-red-600">{errors.birthDate}</p>
-              )}
-            </div>
 
-            {/* Birth Place */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Birth Place
-              </label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={formData.birthPlace || ''}
-                  onChange={(e) => updateFormData('birthPlace', e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="City, Country"
-                />
-              </div>
-            </div>
-
-            {/* Status */}
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Status
-              </label>
-              <div className="flex space-x-4 mb-4">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    checked={formData.isAlive}
-                    onChange={() => updateFormData('isAlive', true)}
-                    className="mr-2 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-gray-700">Living</span>
+              <div>
+                <label htmlFor="member-birth-place" className="block text-sm font-medium text-gray-700 mb-1">
+                  Tempat Lahir *
                 </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    checked={!formData.isAlive}
-                    onChange={() => updateFormData('isAlive', false)}
-                    className="mr-2 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-gray-700">Deceased</span>
+                <input
+                  id="member-birth-place"
+                  type="text"
+                  value={formData.birthPlace ?? ''}
+                  onChange={(e) => handleInputChange('birthPlace', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    errors.birthPlace ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="Kota/tempat kelahiran"
+                />
+                {errors.birthPlace && (
+                  <p className="mt-1 text-sm text-red-600">{errors.birthPlace}</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Life Status */}
+          <div className="border-t pt-6">
+            <div className="flex items-center space-x-4 mb-4">
+              <div className="flex items-center">
+                <input
+                  id="member-alive"
+                  type="checkbox"
+                  checked={formData.isAlive}
+                  onChange={(e) => handleInputChange('isAlive', e.target.checked)}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                />
+                <label htmlFor="member-alive" className="ml-2 text-sm font-medium text-gray-700">
+                  Masih hidup
                 </label>
               </div>
-
-              {/* Death Date */}
-              {!formData.isAlive && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Death Date
-                  </label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input
-                      type="date"
-                      value={formData.deathDate || ''}
-                      onChange={(e) => updateFormData('deathDate', e.target.value)}
-                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        errors.deathDate ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    />
-                  </div>
-                  {errors.deathDate && (
-                    <p className="mt-1 text-sm text-red-600">{errors.deathDate}</p>
-                  )}
-                </div>
-              )}
             </div>
 
-            {/* Profession */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Profession
-              </label>
-              <div className="relative">
-                <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            {!formData.isAlive && (
+              <div>
+                <label htmlFor="member-death-date" className="block text-sm font-medium text-gray-700 mb-1">
+                  Tanggal Wafat
+                </label>
                 <input
+                  id="member-death-date"
+                  type="date"
+                  value={formData.deathDate ?? ''}
+                  onChange={(e) => handleInputChange('deathDate', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-xs"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Professional Information */}
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <Briefcase className="w-5 h-5 mr-2 text-blue-600" />
+              Informasi Profesi
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label htmlFor="member-profession" className="block text-sm font-medium text-gray-700 mb-1">
+                  Profesi/Pekerjaan
+                </label>
+                <input
+                  id="member-profession"
                   type="text"
-                  value={formData.profession || ''}
-                  onChange={(e) => updateFormData('profession', e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Job title or profession"
+                  value={formData.profession ?? ''}
+                  onChange={(e) => handleInputChange('profession', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Pekerjaan atau profesi"
                 />
               </div>
-            </div>
 
-            {/* Current Location */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Current Location
-              </label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <div>
+                <label htmlFor="member-education" className="block text-sm font-medium text-gray-700 mb-1">
+                  Pendidikan
+                </label>
                 <input
+                  id="member-education"
                   type="text"
-                  value={formData.currentLocation || ''}
-                  onChange={(e) => updateFormData('currentLocation', e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Current city or address"
-                />
-              </div>
-            </div>
-
-            {/* Email */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="email"
-                  value={formData.email || ''}
-                  onChange={(e) => updateFormData('email', e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="email@example.com"
-                />
-              </div>
-            </div>
-
-            {/* Phone */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Phone
-              </label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="tel"
-                  value={formData.phone || ''}
-                  onChange={(e) => updateFormData('phone', e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="+1234567890"
+                  value={formData.education ?? ''}
+                  onChange={(e) => handleInputChange('education', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Pendidikan terakhir"
                 />
               </div>
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex items-center justify-end space-x-3 mt-8 pt-6 border-t border-gray-200">
+          {/* Location Information */}
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <MapPin className="w-5 h-5 mr-2 text-blue-600" />
+              Informasi Lokasi
+            </h3>
+            <div>
+              <label htmlFor="member-location" className="block text-sm font-medium text-gray-700 mb-1">
+                Lokasi Saat Ini
+              </label>
+              <input
+                id="member-location"
+                type="text"
+                value={formData.currentLocation ?? ''}
+                onChange={(e) => handleInputChange('currentLocation', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Kota/daerah tempat tinggal saat ini"
+              />
+            </div>
+          </div>
+
+          {/* Contact Information */}
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <Phone className="w-5 h-5 mr-2 text-blue-600" />
+              Informasi Kontak
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label htmlFor="member-phone" className="block text-sm font-medium text-gray-700 mb-1">
+                  Nomor Telepon
+                </label>
+                <input
+                  id="member-phone"
+                  type="tel"
+                  value={formData.phone ?? ''}
+                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="+62812345678"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="member-email" className="block text-sm font-medium text-gray-700 mb-1">
+                  Email
+                </label>
+                <input
+                  id="member-email"
+                  type="email"
+                  value={formData.email ?? ''}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="nama@email.com"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="border-t pt-6 flex justify-end space-x-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
             >
-              Cancel
+              Batal
             </button>
             <button
               type="submit"
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
             >
-              Save Changes
+              Simpan Perubahan
             </button>
           </div>
         </form>
