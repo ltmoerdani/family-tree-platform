@@ -132,8 +132,10 @@ export const TreeCanvas: React.FC = () => {
 
     const centerX = canvasDimensions.width / 2;
     const centerY = canvasDimensions.height / 2;
-    const generationHeight = 450; // Enhanced spacing
-    const cardSpacing = 360; // Professional spacing
+    
+    // Use consistent spacing values matching mockData pattern
+    const generationHeight = 450; // Match mockData spacing
+    const cardSpacing = 360; // Professional spacing between cards
 
     // Sort generation keys using proper comparison and compatible method
     const generationKeys = [...Object.keys(generationGroups)]
@@ -528,7 +530,7 @@ export const TreeCanvas: React.FC = () => {
             })}
           </div>
 
-          {/* Generation Labels - Enhanced positioning */}
+          {/* Generation Labels - Enhanced positioning with consistent spacing */}
           {Object.keys(
             filteredMembers.reduce((acc, member) => {
               acc[member.generation] = true;
@@ -543,25 +545,31 @@ export const TreeCanvas: React.FC = () => {
                   : 'bg-white border-gray-400 text-gray-700'
               }`}
               style={{
-                top: 250 + ((parseInt(generation) - 1) * 450), // Match new spacing
+                top: 250 + ((parseInt(generation) - 1) * 450), // Match consistent spacing
               }}
             >
               Generasi {generation}
             </div>
           ))}
 
-          {/* Empty State for Edit Mode */}
-          {editMode && filteredMembers.length === 0 && (
+          {/* Enhanced Empty State for new family trees */}
+          {(editMode || members.length === 0) && filteredMembers.length === 0 && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-auto">
               <div className="text-center p-8 bg-white rounded-lg shadow-lg border-2 border-blue-200">
                 <div className="text-4xl mb-4">👨‍👩‍👧‍👦</div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Mode Edit Aktif
+                  {members.length === 0 ? 'Pohon Keluarga Kosong' : 'Mode Edit Aktif'}
                 </h3>
                 <p className="text-gray-600 mb-4">
                   Mulai membangun pohon keluarga dengan menambahkan anggota pertama
                 </p>
-                <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                <button 
+                  onClick={() => {
+                    // Trigger add first member - will be handled by UnifiedMemberModal
+                    setEditMode(true);
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                >
                   Tambah Anggota Pertama
                 </button>
               </div>

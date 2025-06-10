@@ -79,20 +79,20 @@ export const mockFamilyData: FamilyMember[] = [
   // Sari sebagai istri Dedi (Generation 2, tapi bukan anak Budi & Siti)
   {
     id: '4',
-    name: 'Sari Handayani', // Ubah nama marga untuk menunjukkan asal keluarga berbeda
+    name: 'Sari Handayani', // Consistent naming dengan keluarga asal berbeda
     birthDate: '1975-09-08',
     birthPlace: 'Bandung',
-    currentLocation: 'Surabaya', // Ikut tinggal dengan suami di Surabaya
+    currentLocation: 'Surabaya', // Konsisten dengan lokasi keluarga
     profession: 'Dokter',
     education: 'S1 Kedokteran',
     gender: 'female',
     photoUrl: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150',
     spouseId: '5', // Dedi sebagai suami
-    childrenIds: ['8', '9', '10', '11'], // Arif, Lia, Kenzo, Aira (anak bersama dengan Dedi)
+    childrenIds: ['8', '9', '10', '11'], // Consistent dengan spacing pattern
     email: 'sari.handayani@email.com',
     phone: '+62812345679',
     isAlive: true,
-    generation: 2, // Same generation as Dedi
+    generation: 2, // Same generation as Dedi untuk spacing consistency
     maritalStatus: 'married',
   },
 

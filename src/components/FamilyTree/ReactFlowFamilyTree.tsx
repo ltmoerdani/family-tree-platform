@@ -397,13 +397,16 @@ const ReactFlowFamilyTreeInner: React.FC<ReactFlowFamilyTreeProps> = ({
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         fitView
-        attributionPosition="bottom-left"
+        attributionPosition={undefined} // Remove React Flow attribution
         className="bg-gray-50"
         minZoom={0.1}
         maxZoom={2}
         defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
         snapToGrid={layoutDirection === 'TB'}
         snapGrid={[25, 50]}
+        proOptions={{
+          hideAttribution: true // Hide React Flow attribution if using Pro
+        }}
       >
         {/* Enhanced Background with softer grid pattern */}
         {showGrid && (

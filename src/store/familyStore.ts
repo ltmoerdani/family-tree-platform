@@ -10,6 +10,7 @@ interface FamilyStore {
   stats: FamilyStats;
   editMode: boolean;
   hasUnsavedChanges: boolean;
+  currentFamilyTreeId: string | null;
   
   // Actions
   setMembers: (members: FamilyMember[]) => void;
@@ -19,6 +20,7 @@ interface FamilyStore {
   setTreePosition: (position: Partial<TreePosition>) => void;
   setEditMode: (enabled: boolean) => void;
   setHasUnsavedChanges: (hasChanges: boolean) => void;
+  setCurrentFamilyTreeId: (id: string | null) => void;
   updateStats: () => void;
   addMember: (member: FamilyMember) => void;
   updateMember: (id: string, updates: Partial<FamilyMember>) => void;
@@ -44,6 +46,7 @@ export const useFamilyStore = create<FamilyStore>((set, get) => ({
   },
   editMode: false,
   hasUnsavedChanges: false,
+  currentFamilyTreeId: null,
   stats: {
     totalMembers: 0,
     totalGenerations: 0,
@@ -78,6 +81,8 @@ export const useFamilyStore = create<FamilyStore>((set, get) => ({
   setEditMode: (enabled) => set({ editMode: enabled }),
 
   setHasUnsavedChanges: (hasChanges) => set({ hasUnsavedChanges: hasChanges }),
+
+  setCurrentFamilyTreeId: (id: string | null) => set({ currentFamilyTreeId: id }),
 
   updateStats: () => {
     const { members } = get();
@@ -125,10 +130,20 @@ export const useFamilyStore = create<FamilyStore>((set, get) => ({
     set({ stats });
   },
 
-  addMember: (member) => {
-    const members = [...get().members, member];
-    set({ members, hasUnsavedChanges: true });
-    get().updateStats();
+  addMember: (newMember: FamilyMember) => {
+    const member: FamilyMember = {
+      ...newMember,
+      id: newMember.id || `member-${Date.now()}`,
+      generation: newMember.generation || 1,
+      maritalStatus: newMember.maritalStatus || 'single',
+      isAlive: newMember.isAlive ?? true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    set((state) => ({
+      members: [...state.members, member],
+    }));
   },
 
   updateMember: (id: string, updates: Partial<FamilyMember>) => {

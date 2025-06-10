@@ -129,7 +129,7 @@ export const UnifiedMemberModal: React.FC<UnifiedMemberModalProps> = ({
         // Update existing member
         updateMember(editingMember.id, memberData);
       } else {
-        // Add new member - need to generate ID and required fields
+        // Add new member with proper generation logic for new family trees
         const newMember: FamilyMember = {
           id: `member-${Date.now()}`,
           name: formData.name.trim(),
@@ -139,7 +139,8 @@ export const UnifiedMemberModal: React.FC<UnifiedMemberModalProps> = ({
           birthPlace: formData.birthPlace.trim() || undefined,
           isAlive: formData.isAlive,
           deathDate: !formData.isAlive ? formData.deathDate || undefined : undefined,
-          generation: 1, // Default generation for new members
+          // Smart generation assignment based on role for first member
+          generation: isFirstMember ? getGenerationFromRole(formData.role) : 1,
           maritalStatus: 'single' // Default marital status
         };
         addMember(newMember);
@@ -153,6 +154,16 @@ export const UnifiedMemberModal: React.FC<UnifiedMemberModalProps> = ({
       setError('Gagal menyimpan data anggota. Silakan coba lagi.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Helper function to determine generation based on role
+  const getGenerationFromRole = (role?: string): number => {
+    switch (role) {
+      case 'grandparent': return 1;
+      case 'parent': return 2;
+      case 'myself': return 3;
+      default: return 1; // Default to root generation
     }
   };
 
