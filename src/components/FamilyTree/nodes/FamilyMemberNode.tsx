@@ -203,21 +203,21 @@ export const FamilyMemberNode = memo<NodeProps<FamilyMemberNodeData>>(({ data, s
             </div>
           </div>
 
-          {/* Additional info (profession/location) - Compact */}
+          {/* Additional info (profession/location) - Enhanced spacing */}
           {(member.profession || member.currentLocation) && (
             <div className="mt-3 pt-2 border-t border-gray-100">
               <div className="space-y-1 text-xs text-gray-600 text-center">
                 {member.profession && (
                   <div className="flex items-center justify-center space-x-1">
                     <Briefcase className="w-3 h-3" />
-                    <span className="truncate">{member.profession}</span>
+                    <span className="truncate max-w-32">{member.profession}</span>
                   </div>
                 )}
                 
                 {member.currentLocation && (
                   <div className="flex items-center justify-center space-x-1">
                     <MapPin className="w-3 h-3" />
-                    <span className="truncate">{member.currentLocation}</span>
+                    <span className="truncate max-w-32">{member.currentLocation}</span>
                   </div>
                 )}
               </div>

@@ -1,5 +1,4 @@
 import React from 'react';
-import { TreeCanvas } from './TreeCanvas';
 import { CardView } from './CardView';
 import { ListView } from './ListView';
 import { ReactFlowTreeView } from './ReactFlowTreeView';

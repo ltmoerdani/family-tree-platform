@@ -65,13 +65,13 @@ const getLayoutedElements = (
 ): { nodes: Node[]; edges: Edge[] } => {
   const isHorizontal = direction === 'LR';
   
-  // Configure dagre for bracket-style layout with wider spacing
+  // Configure dagre for bracket-style layout with professional spacing
   dagreGraph.setGraph({ 
     rankdir: direction,
-    nodesep: 120, // Increased spacing between nodes in same rank
-    ranksep: 200, // Much increased spacing between generations/ranks
-    marginx: 60,
-    marginy: 60,
+    nodesep: 150, // Enhanced professional spacing between nodes
+    ranksep: 280, // Optimal spacing between generations for brackets
+    marginx: 80,
+    marginy: 80,
   });
 
   nodes.forEach((node) => {

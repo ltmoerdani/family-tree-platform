@@ -39,57 +39,23 @@ const groupChildrenByGeneration = (
 };
 
 /**
- * Renders vertical lines from children bracket to individual child cards
- * @param childIds - Array of child member IDs
- * @param positions - Position data for all members
- * @param childrenTopY - Y coordinate of the children connection bracket
- * @returns Array of JSX line elements
+ * Enhanced connection start point with better spouse handling
  */
-const renderChildLines = (
-  childIds: string[],
-  positions: Record<string, { x: number; y: number }>,
-  childrenTopY: number
-): JSX.Element[] => {
-  return childIds
-    .map(childId => {
-      const childPos = positions[childId];
-      if (!childPos) return null;
-
-      return (
-        <line
-          key={`child-${childId}`}
-          x1={childPos.x}
-          y1={childrenTopY}
-          x2={childPos.x}
-          y2={childPos.y - 96} // Card height/2 + margin
-          stroke="#6B7280"
-          strokeWidth="2"
-          className="hover:stroke-blue-500 transition-colors"
-        />
-      );
-    })
-    .filter((element): element is JSX.Element => element !== null);
-};
-
-/**
- * Calculates the starting point for parent-child connections
- * @param memberPos - Position of the parent member
- * @param spousePos - Position of the spouse (if any)
- * @returns Connection start coordinates and Y position
- */
-const calculateConnectionStartPoint = (
+const calculateEnhancedConnectionStartPoint = (
   memberPos: { x: number; y: number },
   spousePos: { x: number; y: number } | null
 ) => {
   if (spousePos) {
-    return {
-      x: (memberPos.x + spousePos.x) / 2,
-      y: Math.max(memberPos.y, spousePos.y) + 96
-    };
+    // For married couples, connection starts from center point between spouses
+    const centerX = (memberPos.x + spousePos.x) / 2;
+    const lowerY = Math.max(memberPos.y, spousePos.y) + 120; // Professional spacing
+    return { x: centerX, y: lowerY };
   }
+  
+  // Single parent connection
   return {
     x: memberPos.x,
-    y: memberPos.y + 96
+    y: memberPos.y + 120
   };
 };
 
@@ -113,121 +79,156 @@ const calculateChildrenBounds = (childPositions: { x: number; y: number }[]) => 
 };
 
 /**
- * Creates the main connection structure (vertical and horizontal lines)
- * @param startPoint - Connection starting point
- * @param childrenBounds - Children positioning bounds
- * @param generation - Generation number
- * @param memberId - Parent member ID
- * @returns JSX elements for connection lines
+ * Create professional bracket-style connection structure
  */
-const createConnectionStructure = (
+const createProfessionalBracketStructure = (
   startPoint: { x: number; y: number },
   childrenBounds: { leftmost: number; rightmost: number; centerX: number; topY: number },
   generation: string,
-  memberId: string
+  memberId: string,
+  childrenCount: number
 ): JSX.Element[] => {
-  const horizontalLineY = startPoint.y + 60;
+  const bracketDropDistance = 80; // Professional bracket depth
+  const horizontalLineY = startPoint.y + bracketDropDistance;
 
-  return [
-    // Vertical line from parent down
+  const connections = [
+    // Main vertical line from parent(s) down
     <line
-      key={`parent-down-${memberId}-${generation}`}
+      key={`parent-main-${memberId}-${generation}`}
       x1={startPoint.x}
       y1={startPoint.y}
       x2={startPoint.x}
       y2={horizontalLineY}
-      stroke="#6B7280"
+      stroke="#374151"
       strokeWidth="3"
-      className="hover:stroke-blue-500 transition-colors"
+      className="hover:stroke-blue-600 transition-colors duration-200"
       strokeLinecap="round"
     />,
-    // Horizontal line to children center
+    
+    // Horizontal connecting line to children center (if not directly below)
+    ...(Math.abs(startPoint.x - childrenBounds.centerX) > 5 ? [
+      <line
+        key={`horizontal-connector-${memberId}-${generation}`}
+        x1={startPoint.x}
+        y1={horizontalLineY}
+        x2={childrenBounds.centerX}
+        y2={horizontalLineY}
+        stroke="#374151"
+        strokeWidth="3"
+        className="hover:stroke-blue-600 transition-colors duration-200"
+        strokeLinecap="round"
+      />
+    ] : []),
+    
+    // Vertical line down to children bracket level
     <line
-      key={`horizontal-${memberId}-${generation}`}
-      x1={startPoint.x}
-      y1={horizontalLineY}
-      x2={childrenBounds.centerX}
-      y2={horizontalLineY}
-      stroke="#6B7280"
-      strokeWidth="3"
-      className="hover:stroke-blue-500 transition-colors"
-      strokeLinecap="round"
-    />,
-    // Vertical line down to children level
-    <line
-      key={`children-down-${memberId}-${generation}`}
+      key={`children-vertical-${memberId}-${generation}`}
       x1={childrenBounds.centerX}
       y1={horizontalLineY}
       x2={childrenBounds.centerX}
       y2={childrenBounds.topY}
-      stroke="#6B7280"
+      stroke="#374151"
       strokeWidth="3"
-      className="hover:stroke-blue-500 transition-colors"
+      className="hover:stroke-blue-600 transition-colors duration-200"
       strokeLinecap="round"
-    />,
-    // Horizontal bracket line across all children (if multiple)
-    ...(childrenBounds.leftmost !== childrenBounds.rightmost ? [
+    />
+  ];
+
+  // Enhanced horizontal bracket line for multiple children
+  if (childrenCount > 1) {
+    connections.push(
       <line
-        key={`bracket-${memberId}-${generation}`}
+        key={`children-bracket-${memberId}-${generation}`}
         x1={childrenBounds.leftmost}
         y1={childrenBounds.topY}
         x2={childrenBounds.rightmost}
         y2={childrenBounds.topY}
-        stroke="#6B7280"
+        stroke="#374151"
         strokeWidth="3"
-        className="hover:stroke-blue-500 transition-colors"
+        className="hover:stroke-blue-600 transition-colors duration-200"
         strokeLinecap="round"
       />
-    ] : [])
-  ];
+    );
+  }
+
+  return connections;
 };
 
 /**
- * Renders connection dots for visual clarity
- * @param startPoint - Connection starting point
- * @param childrenBounds - Children positioning bounds
- * @returns JSX elements for connection dots
+ * Render professional child connection lines
  */
-const renderConnectionDots = (
+const renderProfessionalChildLines = (
+  childIds: string[],
+  positions: Record<string, { x: number; y: number }>,
+  childrenTopY: number
+): JSX.Element[] => {
+  return childIds
+    .map(childId => {
+      const childPos = positions[childId];
+      if (!childPos) return null;
+
+      return (
+        <line
+          key={`child-line-${childId}`}
+          x1={childPos.x}
+          y1={childrenTopY}
+          x2={childPos.x}
+          y2={childPos.y - 120} // Professional card spacing
+          stroke="#374151"
+          strokeWidth="2"
+          className="hover:stroke-blue-500 transition-colors duration-200"
+          strokeLinecap="round"
+        />
+      );
+    })
+    .filter((element): element is JSX.Element => element !== null);
+};
+
+/**
+ * Enhanced connection dots for better visual clarity
+ */
+const renderEnhancedConnectionDots = (
   startPoint: { x: number; y: number },
   childrenBounds: { centerX: number; topY: number }
 ): JSX.Element[] => {
-  const horizontalLineY = startPoint.y + 60;
+  const horizontalLineY = startPoint.y + 80;
 
   return [
+    // Connection junction dots
     <circle
-      key="dot-start"
+      key="dot-parent-junction"
       cx={startPoint.x}
       cy={horizontalLineY}
-      r="4"
-      fill="#6B7280"
-      className="hover:fill-blue-500 transition-colors"
+      r="5"
+      fill="#374151"
+      className="hover:fill-blue-600 transition-colors duration-200"
     />,
+    
+    ...(Math.abs(startPoint.x - childrenBounds.centerX) > 5 ? [
+      <circle
+        key="dot-horizontal-junction"
+        cx={childrenBounds.centerX}
+        cy={horizontalLineY}
+        r="5"
+        fill="#374151"
+        className="hover:fill-blue-600 transition-colors duration-200"
+      />
+    ] : []),
+    
     <circle
-      key="dot-center"
-      cx={childrenBounds.centerX}
-      cy={horizontalLineY}
-      r="4"
-      fill="#6B7280"
-      className="hover:fill-blue-500 transition-colors"
-    />,
-    <circle
-      key="dot-children"
+      key="dot-children-junction"
       cx={childrenBounds.centerX}
       cy={childrenBounds.topY}
-      r="4"
-      fill="#6B7280"
-      className="hover:fill-blue-500 transition-colors"
+      r="5"
+      fill="#374151"
+      className="hover:fill-blue-600 transition-colors duration-200"
     />
   ];
 };
 
 /**
  * Helper function to process parent-child connections for a single member
- * @param member - The parent member
- * @param members - All family members
- * @param positions - Position data for all members
- * @returns Array of connection JSX elements
+ * Enhanced with professional bracket styling
  */
 const processParentChildConnectionsForMember = (
   member: FamilyMember,
@@ -249,20 +250,24 @@ const processParentChildConnectionsForMember = (
     const childPositions = childIds.map(id => positions[id]).filter(Boolean);
     if (childPositions.length === 0) return;
 
-    const connectionStartPoint = calculateConnectionStartPoint(memberPos, spousePos);
+    // Enhanced connection start point calculation
+    const connectionStartPoint = calculateEnhancedConnectionStartPoint(memberPos, spousePos);
     const childrenBounds = calculateChildrenBounds(childPositions);
-    const connectionLines = createConnectionStructure(
+    
+    // Create professional bracket-style connections
+    const connectionLines = createProfessionalBracketStructure(
       connectionStartPoint,
       childrenBounds,
       generation,
-      member.id
+      member.id,
+      childIds.length
     );
 
     connections.push(
-      <g key={`parent-${member.id}-gen-${generation}`}>
+      <g key={`parent-${member.id}-gen-${generation}`} className="family-connection">
         {connectionLines}
-        {renderChildLines(childIds, positions, childrenBounds.topY)}
-        {renderConnectionDots(connectionStartPoint, childrenBounds)}
+        {renderProfessionalChildLines(childIds, positions, childrenBounds.topY)}
+        {renderEnhancedConnectionDots(connectionStartPoint, childrenBounds)}
       </g>
     );
   });
@@ -292,6 +297,52 @@ export const FamilyTreeConnections: React.FC<FamilyTreeConnectionsProps> = ({
   };
 
   /**
+   * Professional spouse connection calculation
+   */
+  const calculateProfessionalSpouseConnection = (
+    memberPos: { x: number; y: number },
+    spousePos: { x: number; y: number }
+  ) => {
+    const leftPos = memberPos.x < spousePos.x ? memberPos : spousePos;
+    const rightPos = memberPos.x < spousePos.x ? spousePos : memberPos;
+    const connectionY = (leftPos.y + rightPos.y) / 2;
+
+    return {
+      startX: leftPos.x + 100, // Professional card edge spacing
+      endX: rightPos.x - 100,
+      centerX: (leftPos.x + rightPos.x) / 2,
+      y: connectionY
+    };
+  };
+
+  /**
+   * Professional marriage indicator
+   */
+  const renderProfessionalMarriageIndicator = (x: number, y: number): JSX.Element[] => [
+    <circle
+      key="marriage-bg"
+      cx={x}
+      cy={y}
+      r="12"
+      fill="#DC2626"
+      stroke="white"
+      strokeWidth="3"
+      className="hover:fill-red-700 transition-colors duration-200"
+    />,
+    <text
+      key="marriage-symbol"
+      x={x}
+      y={y + 3}
+      textAnchor="middle"
+      fontSize="14"
+      fill="white"
+      className="pointer-events-none font-bold"
+    >
+      ♥
+    </text>
+  ];
+
+  /**
    * Renders spouse connection lines (horizontal lines with heart indicator)
    * @returns Array of JSX elements representing spouse connections
    */
@@ -311,105 +362,21 @@ export const FamilyTreeConnections: React.FC<FamilyTreeConnectionsProps> = ({
       processedPairs.add(`${member.id}-${member.spouseId}`);
       processedPairs.add(`${member.spouseId}-${member.id}`);
 
-      const connectionData = calculateSpouseConnectionData(memberPos, spousePos);
+      const connectionData = calculateProfessionalSpouseConnection(memberPos, spousePos);
 
       connections.push(
-        <g key={`spouse-${member.id}-${member.spouseId}`}>
+        <g key={`spouse-${member.id}-${member.spouseId}`} className="spouse-connection">
           <line
             x1={connectionData.startX}
             y1={connectionData.y}
             x2={connectionData.endX}
             y2={connectionData.y}
-            stroke="#6B7280"
-            strokeWidth="2"
-            className="hover:stroke-blue-500 transition-colors"
+            stroke="#DC2626"
+            strokeWidth="3"
+            className="hover:stroke-red-700 transition-colors duration-200"
             strokeLinecap="round"
           />
-          {renderMarriageIndicator(connectionData.centerX, connectionData.y)}
-        </g>
-      );
-    });
-
-    return connections;
-  };
-
-  /**
-   * Calculates spouse connection positioning data
-   * @param memberPos - Position of first spouse
-   * @param spousePos - Position of second spouse
-   * @returns Connection positioning data
-   */
-  const calculateSpouseConnectionData = (
-    memberPos: { x: number; y: number },
-    spousePos: { x: number; y: number }
-  ) => {
-    const leftPos = memberPos.x < spousePos.x ? memberPos : spousePos;
-    const rightPos = memberPos.x < spousePos.x ? spousePos : memberPos;
-    const connectionY = (leftPos.y + rightPos.y) / 2;
-
-    return {
-      startX: leftPos.x + 80,
-      endX: rightPos.x - 80,
-      centerX: (leftPos.x + rightPos.x) / 2,
-      y: connectionY
-    };
-  };
-
-  /**
-   * Renders marriage indicator (heart icon)
-   * @param x - X coordinate for the indicator
-   * @param y - Y coordinate for the indicator
-   * @returns JSX elements for marriage indicator
-   */
-  const renderMarriageIndicator = (x: number, y: number): JSX.Element[] => [
-    <circle
-      key="heart-bg"
-      cx={x}
-      cy={y}
-      r="8"
-      fill="#EF4444"
-      stroke="white"
-      strokeWidth="2"
-      className="hover:fill-red-600 transition-colors"
-    />,
-    <text
-      key="heart-icon"
-      x={x}
-      y={y + 2}
-      textAnchor="middle"
-      fontSize="10"
-      fill="white"
-      className="pointer-events-none font-bold"
-    >
-      ♥
-    </text>
-  ];
-
-  /**
-   * Renders sibling connection lines (dashed horizontal lines)
-   * @returns Array of JSX elements representing sibling connections
-   */
-  const renderSiblingConnections = (): JSX.Element[] => {
-    const connections: JSX.Element[] = [];
-    const processedGroups = new Set<string>();
-
-    const siblingGroups = groupSiblingsByParents();
-
-    Object.entries(siblingGroups).forEach(([parentKey, siblingIds]) => {
-      if (siblingIds.length < 2 || processedGroups.has(parentKey)) return;
-      
-      processedGroups.add(parentKey);
-      
-      const siblingPositions = getSortedSiblingPositions(siblingIds);
-      if (siblingPositions.length < 2) return;
-
-      const connectionData = calculateSiblingConnectionData(siblingPositions);
-
-      connections.push(
-        <g key={`siblings-${parentKey}`}>
-          {renderSiblingBracket(connectionData, parentKey)}
-          {renderSiblingConnectors(siblingPositions, connectionData.y)}
-          {renderSiblingDots(siblingPositions, connectionData.y)}
+          {renderProfessionalMarriageIndicator(connectionData.centerX, connectionData.y)}
         </g>
       );
     });
@@ -427,7 +394,7 @@ export const FamilyTreeConnections: React.FC<FamilyTreeConnectionsProps> = ({
     members.forEach(member => {
       if (!member.parentIds || member.parentIds.length === 0) return;
       
-      const sortedParentIds = [...member.parentIds].sort((a, b) => a.localeCompare(b));
+      const sortedParentIds = [...member.parentIds].sort((a: string, b: string) => a.localeCompare(b));
       const parentKey = sortedParentIds.join('-');
       
       if (!siblingGroups[parentKey]) {
@@ -531,6 +498,38 @@ export const FamilyTreeConnections: React.FC<FamilyTreeConnectionsProps> = ({
         className="hover:fill-gray-600 transition-colors"
       />
     ));
+  };
+
+  /**
+   * Renders sibling connection lines (dashed horizontal lines)
+   * @returns Array of JSX elements representing sibling connections
+   */
+  const renderSiblingConnections = (): JSX.Element[] => {
+    const connections: JSX.Element[] = [];
+    const processedGroups = new Set<string>();
+
+    const siblingGroups = groupSiblingsByParents();
+
+    Object.entries(siblingGroups).forEach(([parentKey, siblingIds]) => {
+      if (siblingIds.length < 2 || processedGroups.has(parentKey)) return;
+      
+      processedGroups.add(parentKey);
+      
+      const siblingPositions = getSortedSiblingPositions(siblingIds);
+      if (siblingPositions.length < 2) return;
+
+      const connectionData = calculateSiblingConnectionData(siblingPositions);
+
+      connections.push(
+        <g key={`siblings-${parentKey}`}>
+          {renderSiblingBracket(connectionData, parentKey)}
+          {renderSiblingConnectors(siblingPositions, connectionData.y)}
+          {renderSiblingDots(siblingPositions, connectionData.y)}
+        </g>
+      );
+    });
+
+    return connections;
   };
 
   return (

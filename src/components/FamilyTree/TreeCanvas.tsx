@@ -8,29 +8,49 @@ import { useFamilyStore } from '../../store/familyStore';
 import { FamilyMember } from '../../types/family';
 
 /**
- * Helper function to sort members placing spouses adjacent
+ * Enhanced family grouping function for better organization
  * @param members - Array of family members to sort
- * @returns Sorted array with spouses placed next to each other
+ * @returns Sorted array with family groups organized properly
  */
-const sortMembersBySpouses = (members: FamilyMember[]): FamilyMember[] => {
-  const sorted: FamilyMember[] = [];
-  const processed = new Set<string>();
+const sortMembersByFamilyGroups = (members: FamilyMember[]): FamilyMember[] => {
+  const familyGroups: Record<string, FamilyMember[]> = {};
   
+  // Group members by family units
   members.forEach(member => {
-    if (processed.has(member.id)) return;
+    let groupKey = 'single';
     
-    // Add member
-    sorted.push(member);
-    processed.add(member.id);
-    
-    // If member has spouse in same generation, add spouse right after
-    if (member.spouseId) {
-      const spouse = members.find(m => m.id === member.spouseId);
-      if (spouse && !processed.has(spouse.id)) {
-        sorted.push(spouse);
-        processed.add(spouse.id);
+    // Group by parent relationship (siblings)
+    if (member.parentIds && member.parentIds.length > 0) {
+      // Create sorted parent key for consistent grouping
+      const sortedParentIds = [...member.parentIds].sort((a: string, b: string) => a.localeCompare(b));
+      groupKey = sortedParentIds.join('-');
+    }
+    // Group spouses together
+    else if (member.spouseId) {
+      const spouseInSameGen = members.find(m => m.id === member.spouseId);
+      if (spouseInSameGen) {
+        // Create sorted couple key for consistent grouping
+        const coupleIds = [member.id, member.spouseId].sort((a: string, b: string) => a.localeCompare(b));
+        groupKey = coupleIds.join('-couple');
       }
     }
+    
+    if (!familyGroups[groupKey]) {
+      familyGroups[groupKey] = [];
+    }
+    familyGroups[groupKey].push(member);
+  });
+  
+  // Sort within each group and flatten using compatible method for immutability
+  const sorted: FamilyMember[] = [];
+  Object.values(familyGroups).forEach(group => {
+    // Sort spouses to be adjacent using localeCompare for reliability
+    const sortedGroup = [...group].sort((a: FamilyMember, b: FamilyMember) => {
+      if (a.spouseId === b.id) return -1;
+      if (b.spouseId === a.id) return 1;
+      return a.name.localeCompare(b.name);
+    });
+    sorted.push(...sortedGroup);
   });
   
   return sorted;
@@ -59,7 +79,7 @@ export const TreeCanvas: React.FC = () => {
    */
   const calculateCanvasDimensions = useCallback((): { width: number; height: number } => {
     if (members.length === 0) {
-      return { width: 1200, height: 800 };
+      return { width: 1600, height: 1000 };
     }
 
     const generationGroups: Record<number, FamilyMember[]> = {};
@@ -71,10 +91,10 @@ export const TreeCanvas: React.FC = () => {
       generationGroups[member.generation].push(member);
     });
 
-    // Significantly increased spacing for better bracket visibility
-    const generationHeight = 400; // Much wider spacing between generations
-    const cardSpacing = 320; // Increased card separation
-    const padding = 400; // Increased padding
+    // Professional spacing for cleaner bracket connections
+    const generationHeight = 450; // Increased for better bracket visibility
+    const cardSpacing = 360; // Enhanced spacing between cards
+    const padding = 500; // More padding for better framing
 
     const maxMembersInGeneration = Math.max(
       ...Object.values(generationGroups).map(gen => gen.length)
@@ -85,15 +105,15 @@ export const TreeCanvas: React.FC = () => {
     const requiredHeight = (numberOfGenerations - 1) * generationHeight + (padding * 2);
 
     return {
-      width: Math.max(1600, requiredWidth), // Increased minimum width
-      height: Math.max(1200, requiredHeight) // Increased minimum height
+      width: Math.max(2000, requiredWidth), // Increased minimum for professional look
+      height: Math.max(1400, requiredHeight)
     };
   }, [members]);
 
   const canvasDimensions = calculateCanvasDimensions();
 
   /**
-   * Calculate positions for family members with improved layout
+   * Calculate positions for family members with enhanced professional layout
    * @returns Object mapping member IDs to their x,y positions
    */
   const calculateMemberPositions = useCallback((): Record<string, { x: number; y: number }> => {
@@ -112,17 +132,20 @@ export const TreeCanvas: React.FC = () => {
 
     const centerX = canvasDimensions.width / 2;
     const centerY = canvasDimensions.height / 2;
-    const generationHeight = 400;
-    const cardSpacing = 320;
+    const generationHeight = 450; // Enhanced spacing
+    const cardSpacing = 360; // Professional spacing
 
-    const generationKeys = Object.keys(generationGroups).map(Number).sort((a, b) => a - b);
+    // Sort generation keys using proper comparison and compatible method
+    const generationKeys = [...Object.keys(generationGroups)]
+      .map(Number)
+      .sort((a: number, b: number) => a - b);
     const middleGenIndex = Math.floor(generationKeys.length / 2);
     
-    generationKeys.forEach((generation, indexInArray) => {
+    generationKeys.forEach((generation: number, indexInArray: number) => {
       const membersInGen = generationGroups[generation];
       
-      // Sort members to place spouses next to each other
-      const sortedMembers = sortMembersBySpouses(membersInGen);
+      // Enhanced family grouping for better organization
+      const sortedMembers = sortMembersByFamilyGroups(membersInGen);
       
       const totalWidth = (sortedMembers.length - 1) * cardSpacing;
       const relativeGenIndex = indexInArray - middleGenIndex;
@@ -135,7 +158,7 @@ export const TreeCanvas: React.FC = () => {
         
         sortedMembers.forEach((member, memberIndex) => {
           const x = startX + (memberIndex * cardSpacing);
-          positions[member.id] = { x, y }; // Same Y for all members in generation
+          positions[member.id] = { x, y };
         });
       }
     });
@@ -505,7 +528,7 @@ export const TreeCanvas: React.FC = () => {
             })}
           </div>
 
-          {/* Generation Labels - Updated positioning */}
+          {/* Generation Labels - Enhanced positioning */}
           {Object.keys(
             filteredMembers.reduce((acc, member) => {
               acc[member.generation] = true;
@@ -514,13 +537,13 @@ export const TreeCanvas: React.FC = () => {
           ).map(generation => (
             <div
               key={`gen-${generation}`}
-              className={`absolute left-8 px-4 py-2 rounded-full shadow-sm border text-sm font-medium transition-colors pointer-events-none ${
+              className={`absolute left-12 px-6 py-3 rounded-full shadow-md border text-sm font-semibold transition-all ${
                 editMode 
-                  ? 'bg-blue-100 border-blue-300 text-blue-800' 
-                  : 'bg-white border-gray-300 text-gray-600'
+                  ? 'bg-blue-100 border-blue-400 text-blue-900' 
+                  : 'bg-white border-gray-400 text-gray-700'
               }`}
               style={{
-                top: 200 + ((parseInt(generation) - 1) * 400), // Updated to match new spacing
+                top: 250 + ((parseInt(generation) - 1) * 450), // Match new spacing
               }}
             >
               Generasi {generation}

@@ -16,10 +16,10 @@ export interface TierLayout {
 export const calculateTierLayout = (
   nodes: Node[]
 ): { layoutedNodes: Node[]; tiers: TierLayout[] } => {
-  const TIER_HEIGHT = 280;
-  const NODE_WIDTH = 250;
-  const HORIZONTAL_SPACING = 80;
-  const START_Y = 150;
+  const TIER_HEIGHT = 350; // Increased for better bracket spacing
+  const NODE_WIDTH = 280; // Wider spacing for cleaner look
+  const HORIZONTAL_SPACING = 120; // More space between nodes
+  const START_Y = 200; // Better starting position
 
   // Group nodes by generation
   const generationMap = new Map<number, Node[]>();
@@ -44,35 +44,43 @@ export const calculateTierLayout = (
     const nodesInGeneration = generationMap.get(generation)!;
     const y = START_Y + (tierIndex * TIER_HEIGHT);
     
-    // Sort nodes in generation to place spouses next to each other
+    // Enhanced sorting: place spouses directly adjacent and group families
     const sortedNodes = [...nodesInGeneration].sort((a, b) => {
       const memberA = a.data?.member as FamilyMember;
       const memberB = b.data?.member as FamilyMember;
       
-      // If A is spouse of B, put them next to each other
+      // Group family units together
+      const familyGroupA = getFamilyGroupId(memberA);
+      const familyGroupB = getFamilyGroupId(memberB);
+      
+      if (familyGroupA !== familyGroupB) {
+        return familyGroupA.localeCompare(familyGroupB);
+      }
+      
+      // Within same family group, spouses should be adjacent
       if (memberA.spouseId === memberB.id) return -1;
       if (memberB.spouseId === memberA.id) return 1;
       
-      // Otherwise sort by name using locale comparison for proper sorting
       return memberA.name.localeCompare(memberB.name);
     });
     
-    // Calculate spacing to put spouses directly adjacent
+    // Calculate optimal spacing for family groups
     const totalWidth = sortedNodes.length * NODE_WIDTH + 
                      (sortedNodes.length - 1) * HORIZONTAL_SPACING;
     const startX = -totalWidth / 2;
 
-    // Position nodes with spouses adjacent
+    // Position nodes with enhanced family grouping
     sortedNodes.forEach((node, index) => {
       const x = startX + (index * (NODE_WIDTH + HORIZONTAL_SPACING));
       
       layoutedNodes.push({
         ...node,
-        position: { x, y }, // Same Y for all nodes in same generation
+        position: { x, y },
         data: {
           ...node.data,
           tier: tierIndex,
           generationY: y,
+          familyGroup: getFamilyGroupId(node.data?.member),
         }
       });
     });
@@ -85,6 +93,25 @@ export const calculateTierLayout = (
   });
 
   return { layoutedNodes, tiers };
+};
+
+// Helper function to determine family group for better organization
+const getFamilyGroupId = (member: FamilyMember | null): string => {
+  if (!member) return 'unknown';
+  
+  // Use parent IDs to group siblings together
+  if (member.parentIds && member.parentIds.length > 0) {
+    const sortedParentIds = [...member.parentIds].sort((a: string, b: string) => a.localeCompare(b));
+    return sortedParentIds.join('-');
+  }
+  
+  // Use spouse relationship for married couples
+  if (member.spouseId) {
+    const spouseGroup = [member.id, member.spouseId].sort((a: string, b: string) => a.localeCompare(b));
+    return spouseGroup.join('-spouse');
+  }
+  
+  return member.id;
 };
 
 /**

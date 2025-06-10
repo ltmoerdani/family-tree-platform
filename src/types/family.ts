@@ -50,3 +50,31 @@ export interface TreePosition {
   y: number;
   scale: number;
 }
+
+/**
+ * Utility types for better TypeScript compatibility
+ */
+export type SortDirection = 'asc' | 'desc';
+
+export type RelationshipType = 
+  | 'parent' 
+  | 'child' 
+  | 'spouse' 
+  | 'sibling' 
+  | 'grandparent' 
+  | 'grandchild';
+
+export interface SortConfig<T = string> {
+  field: T;
+  direction: SortDirection;
+}
+
+export interface Position {
+  x: number;
+  y: number;
+}
+
+export interface FamilyTreeConnectionPoint extends Position {
+  type: 'parent' | 'child' | 'spouse' | 'sibling';
+  memberId: string;
+}
