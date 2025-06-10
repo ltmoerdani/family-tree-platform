@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Download, Printer, Share2 } from 'lucide-react';
 import { useFamilyStore } from '../../store/familyStore';
-import { AddMemberModal } from '../Forms/AddMemberModal';
+import { UnifiedMemberModal } from '../Forms/UnifiedMemberModal';
 
 export const BottomNavigation: React.FC = () => {
   const { stats } = useFamilyStore();
@@ -56,7 +56,7 @@ export const BottomNavigation: React.FC = () => {
         </div>
       </div>
 
-      <AddMemberModal
+      <UnifiedMemberModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
       />

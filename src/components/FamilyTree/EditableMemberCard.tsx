@@ -14,7 +14,7 @@ import {
   Move
 } from 'lucide-react';
 import { RelationshipSelectionModal } from './RelationshipSelectionModal';
-import { AddMemberModal } from '../Forms/AddMemberModal';
+import { UnifiedMemberModal } from '../Forms/UnifiedMemberModal';
 
 interface EditableMemberCardProps {
   member: FamilyMember;
@@ -56,7 +56,6 @@ export const EditableMemberCard: React.FC<EditableMemberCardProps> = ({
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedDirection, setSelectedDirection] = useState<Direction>('up');
-  const [selectedRelationship, setSelectedRelationship] = useState<string>('');
   const [showContextMenu, setShowContextMenu] = useState(false);
   const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
 
@@ -81,8 +80,7 @@ export const EditableMemberCard: React.FC<EditableMemberCardProps> = ({
     setShowRelationshipModal(true);
   };
 
-  const handleRelationshipSelect = (relationship: string) => {
-    setSelectedRelationship(relationship);
+  const handleRelationshipSelect = () => {
     setShowRelationshipModal(false);
     setShowAddMemberModal(true);
   };
@@ -346,18 +344,12 @@ export const EditableMemberCard: React.FC<EditableMemberCardProps> = ({
         onSelect={handleRelationshipSelect}
       />
 
-      <AddMemberModal
+      <UnifiedMemberModal
         isOpen={showAddMemberModal}
         onClose={() => setShowAddMemberModal(false)}
-        preselectedParent={selectedDirection === 'down' ? member : undefined}
-        relationshipContext={{
-          direction: selectedDirection,
-          relationship: selectedRelationship,
-          relativeTo: member
-        }}
       />
 
-      <AddMemberModal
+      <UnifiedMemberModal
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}
         editingMember={member}

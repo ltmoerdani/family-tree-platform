@@ -23,10 +23,6 @@ export const TreeCanvas: React.FC = () => {
   const [lastWheelTime, setLastWheelTime] = useState(0);
   const [accumulatedDelta, setAccumulatedDelta] = useState(0);
 
-  // Define virtual canvas dimensions as constants accessible throughout the component
-  const VIRTUAL_CANVAS_WIDTH = 2000; 
-  const VIRTUAL_CANVAS_HEIGHT = 1500; 
-
   // Prevent browser zoom and add global CSS to prevent page movement
   useEffect(() => {
     // Add meta viewport to prevent zoom
@@ -68,7 +64,77 @@ export const TreeCanvas: React.FC = () => {
     };
   }, []);
 
-  // Calculate positions for family members with expanded canvas
+  // Calculate dynamic canvas dimensions based on content
+  const calculateCanvasDimensions = useCallback((): { width: number; height: number } => {
+    if (members.length === 0) {
+      // Minimum canvas size for empty state
+      return { width: 800, height: 600 };
+    }
+
+    const generationGroups: Record<number, FamilyMember[]> = {};
+    
+    // Group members by generation
+    members.forEach(member => {
+      if (!generationGroups[member.generation]) {
+        generationGroups[member.generation] = [];
+      }
+      generationGroups[member.generation].push(member);
+    });
+
+    const generationHeight = 350;
+    const cardSpacing = 300;
+    const padding = 200; // Padding around the entire tree
+
+    // Calculate required width (based on the generation with most members)
+    const maxMembersInGeneration = Math.max(
+      ...Object.values(generationGroups).map(gen => gen.length)
+    );
+    const requiredWidth = (maxMembersInGeneration - 1) * cardSpacing + (padding * 2);
+
+    // Calculate required height (based on number of generations)
+    const numberOfGenerations = Object.keys(generationGroups).length;
+    const requiredHeight = (numberOfGenerations - 1) * generationHeight + (padding * 2);
+
+    // Ensure minimum size
+    const minWidth = 800;
+    const minHeight = 600;
+
+    return {
+      width: Math.max(minWidth, requiredWidth),
+      height: Math.max(minHeight, requiredHeight)
+    };
+  }, [members]);
+
+  // Get dynamic canvas dimensions
+  const canvasDimensions = calculateCanvasDimensions();
+
+  // Initialize canvas to center position on first load
+  useEffect(() => {
+    if (canvasRef.current && !isInitialPositionSet) {
+      // Calculate initial position to center the dynamic canvas in viewport
+      const rect = canvasRef.current.getBoundingClientRect();
+      const viewportCenterX = rect.width / 2;
+      const viewportCenterY = rect.height / 2;
+      
+      // Calculate the center position of dynamic canvas
+      const canvasCenterX = canvasDimensions.width / 2;
+      const canvasCenterY = canvasDimensions.height / 2;
+      
+      // Set initial pan offset to center the canvas
+      const zoomScale = viewMode.zoom / 100;
+      
+      const initialPanOffset = {
+        x: viewportCenterX - (canvasCenterX * zoomScale),
+        y: viewportCenterY - (canvasCenterY * zoomScale)
+      };
+      
+      setPanOffset(initialPanOffset);
+      setIsInitialPositionSet(true);
+      console.log("Dynamic canvas centered:", canvasDimensions);
+    }
+  }, [isInitialPositionSet, canvasDimensions, viewMode.zoom]);
+
+  // Calculate positions for family members with dynamic canvas - centered approach
   const calculatePositions = useCallback((): Record<string, { x: number; y: number }> => {
     const positions: Record<string, { x: number; y: number }> = {};
     const generationGroups: Record<number, FamilyMember[]> = {};
@@ -81,22 +147,34 @@ export const TreeCanvas: React.FC = () => {
       generationGroups[member.generation].push(member);
     });
 
-    // Use much larger virtual canvas for better navigation
-    const generationHeight = 350; // Increased spacing
-    const cardSpacing = 300; // Increased horizontal spacing
-    const startingOffsetX = 0; // Start further from left edge
-    const startingOffsetY = 0; // Start further from top
+    // Use dynamic canvas center
+    const centerX = canvasDimensions.width / 2;
+    const centerY = canvasDimensions.height / 2;
+    
+    const generationHeight = 350;
+    const cardSpacing = 300;
 
+    // Get generations and sort them
     const generationKeys = Object.keys(generationGroups).map(Number).sort((a, b) => a - b);
-
-    generationKeys.forEach((generation, genIndex) => {
+    
+    // Calculate how many generations we have above and below the middle
+    const middleGenIndex = Math.floor(generationKeys.length / 2);
+    
+    // Position each generation relative to the center
+    generationKeys.forEach((generation, indexInArray) => {
       const membersInGen = generationGroups[generation];
+      
+      // Calculate total width needed for this generation
       const totalWidth = (membersInGen.length - 1) * cardSpacing;
       
-      // Center each generation horizontally within the virtual canvas
-      const startX = startingOffsetX + (VIRTUAL_CANVAS_WIDTH - totalWidth) / 2;
-      const y = startingOffsetY + (genIndex * generationHeight);
-
+      // Calculate vertical position relative to center
+      const relativeGenIndex = indexInArray - middleGenIndex;
+      const y = centerY + (relativeGenIndex * generationHeight);
+      
+      // Center this generation horizontally
+      const startX = centerX - (totalWidth / 2);
+      
+      // Position each member in this generation
       membersInGen.forEach((member, memberIndex) => {
         const x = startX + (memberIndex * cardSpacing);
         positions[member.id] = { x, y };
@@ -104,53 +182,7 @@ export const TreeCanvas: React.FC = () => {
     });
 
     return positions;
-  }, [members]);
-
-  // Auto-center family tree on initial load
-  useEffect(() => {
-    if (members.length > 0 && canvasRef.current && !isInitialPositionSet) {
-      const timer = setTimeout(() => {
-        const positions = calculatePositions();
-        const memberPositions = Object.values(positions);
-        
-        if (memberPositions.length === 0) return;
-        
-        const CARD_WIDTH = 160; // Tailwind w-40 is 160px
-        const CARD_HEIGHT = 200; // Approximate height based on visual
-        
-        // Find bounds of all members including their dimensions
-        const minX = Math.min(...memberPositions.map(p => p.x - CARD_WIDTH / 2));
-        const maxX = Math.max(...memberPositions.map(p => p.x + CARD_WIDTH / 2));
-        const minY = Math.min(...memberPositions.map(p => p.y - CARD_HEIGHT / 2));
-        const maxY = Math.max(...memberPositions.map(p => p.y + CARD_HEIGHT / 2));
-        
-        // Calculate center of family tree content
-        const contentCenterX = (minX + maxX) / 2;
-        const contentCenterY = (minY + maxY) / 2;
-        
-        // Get viewport dimensions
-        const rect = canvasRef.current!.getBoundingClientRect();
-        const viewportCenterX = rect.width / 2;
-        const viewportCenterY = rect.height / 2;
-
-        // Calculate pan offset to center the content in viewport
-        // Account for the current zoom level
-        const zoomScale = viewMode.zoom / 100;
-        
-        const newPanOffset = {
-          x: viewportCenterX - (contentCenterX * zoomScale),
-          y: viewportCenterY - (contentCenterY * zoomScale)
-        };
-        
-        setPanOffset(newPanOffset);
-        setIsInitialPositionSet(true);
-        console.log("Auto-centering applied. New panOffset:", newPanOffset, "Zoom scale:", zoomScale);
-
-      }, 300); // Small delay to ensure DOM is ready
-      
-      return () => clearTimeout(timer);
-    }
-  }, [members, viewMode.zoom, isInitialPositionSet, calculatePositions]);
+  }, [members, canvasDimensions]);
 
   const positions = calculatePositions();
 
@@ -454,18 +486,19 @@ export const TreeCanvas: React.FC = () => {
         className="absolute inset-0 overflow-hidden"
         style={{ position: 'relative' }}
       >
-        {/* Large draggable canvas container */}
+        {/* Large draggable canvas container - now dynamic */}
         <div 
           className="relative pointer-events-none"
           style={{
-            width: `${VIRTUAL_CANVAS_WIDTH}px`, // Much wider canvas
-            height: `${VIRTUAL_CANVAS_HEIGHT}px`, // Much taller canvas
+            width: `${canvasDimensions.width}px`, // Dynamic width
+            height: `${canvasDimensions.height}px`, // Dynamic height
             transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${viewMode.zoom / 100})`,
-            transformOrigin: '0 0', // Keep at top-left for predictable behavior
-            transition: (isPanning || isZooming || !isInitialPositionSet) ? 'none' : 'transform 0.1s cubic-bezier(0.25, 0.46, 0.45, 0.94)', // Smooth transition when not actively interacting
-            willChange: 'transform', // Optimize for transform changes
+            transformOrigin: '0 0',
+            transition: (isPanning || isZooming || !isInitialPositionSet) ? 'none' : 'transform 0.1s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+            willChange: 'transform',
           }}
         >
+
           {/* Connection Lines SVG */}
           <svg 
             className="absolute inset-0 pointer-events-none"

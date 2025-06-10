@@ -10,11 +10,8 @@ export const Dashboard: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUpgradeSuccess, setShowUpgradeSuccess] = useState(false);
 
-  const maxFamilyTrees = isPremium ? Infinity : 1;
   const maxMembersPerTree = isPremium ? Infinity : 15;
   const currentMemberCount = familyTrees.reduce((total, tree) => total + tree.memberCount, 0);
-
-  const canCreateNewTree = isPremium || familyTrees.length < maxFamilyTrees;
 
   // Check for upgrade success
   useEffect(() => {
@@ -29,9 +26,7 @@ export const Dashboard: React.FC = () => {
   }, []);
 
   const handleCreateTree = () => {
-    if (canCreateNewTree) {
-      setShowCreateModal(true);
-    }
+    setShowCreateModal(true);
   };
 
   const handleOpenTree = (treeId: string) => {
@@ -55,41 +50,22 @@ export const Dashboard: React.FC = () => {
   const renderCreateNewCard = () => (
     <button
       type="button"
-      onClick={canCreateNewTree ? handleCreateTree : handleUpgrade}
-      className={`group relative bg-white rounded-xl border-2 border-dashed transition-all duration-200 h-48 flex flex-col items-center justify-center cursor-pointer ${
-        canCreateNewTree
-          ? 'border-gray-300 hover:border-green-500 hover:bg-green-50'
-          : 'border-gray-200 bg-gray-50 hover:border-blue-500 hover:bg-blue-50'
-      }`}
-      aria-label={canCreateNewTree ? 'Buat Family Tree Baru' : 'Upgrade ke Premium untuk membuat pohon keluarga baru'}
+      onClick={handleCreateTree}
+      className="group relative bg-white rounded-xl border-2 border-dashed transition-all duration-200 h-48 flex flex-col items-center justify-center cursor-pointer border-gray-300 hover:border-green-500 hover:bg-green-50"
+      aria-label="Buat Family Tree Baru"
     >
-      {canCreateNewTree ? (
-        <>
-          <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-green-200 transition-colors">
-            <Plus className="w-6 h-6 text-green-600" />
-          </div>
-          <h3 className="font-semibold text-gray-900 mb-1">Buat Family Tree Baru</h3>
-          <p className="text-sm text-gray-500 text-center px-4">
-            Mulai membangun pohon keluarga baru
-          </p>
-        </>
-      ) : (
-        <>
-          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-blue-200 transition-colors">
-            <Crown className="w-6 h-6 text-blue-600" />
-          </div>
-          <h3 className="font-semibold text-gray-700 mb-1">Upgrade untuk Family Tree Unlimited</h3>
-          <p className="text-sm text-gray-500 text-center px-4">
-            Akun gratis terbatas 1 family tree
-          </p>
-          <p className="text-xs text-blue-600 font-medium mt-2">Klik untuk upgrade</p>
-        </>
-      )}
+      <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-green-200 transition-colors">
+        <Plus className="w-6 h-6 text-green-600" />
+      </div>
+      <h3 className="font-semibold text-gray-900 mb-1">Buat Family Tree Baru</h3>
+      <p className="text-sm text-gray-500 text-center px-4">
+        Mulai membangun pohon keluarga baru
+      </p>
     </button>
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50" data-testid="dashboard">
       {/* Upgrade Success Notification */}
       {showUpgradeSuccess && (
         <div className="fixed top-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg z-50 animate-in slide-in-from-right-4 duration-300">
@@ -186,7 +162,7 @@ export const Dashboard: React.FC = () => {
             ) : (
               <div className="flex items-center space-x-4">
                 <span className="font-medium text-blue-800">
-                  Akun Gratis: {familyTrees.length}/{maxFamilyTrees} Family Tree
+                  Akun Gratis: {familyTrees.length} Family Tree (Mode Development)
                 </span>
                 <span className="text-blue-700">•</span>
                 <div className="flex items-center space-x-2">
@@ -228,12 +204,7 @@ export const Dashboard: React.FC = () => {
             {viewMode === 'list' && (
               <button
                 onClick={handleCreateTree}
-                disabled={!canCreateNewTree}
-                className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-colors ${
-                  canCreateNewTree
-                    ? 'bg-green-600 text-white hover:bg-green-700'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
+                className="flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-colors bg-green-600 text-white hover:bg-green-700"
               >
                 <Plus className="w-5 h-5" />
                 <span>Buat Family Tree Baru</span>
