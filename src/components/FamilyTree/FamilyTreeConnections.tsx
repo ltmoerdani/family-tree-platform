@@ -47,7 +47,7 @@ const renderChildLines = (
         x1={childPos.x}
         y1={childrenTopY}
         x2={childPos.x}
-        y2={childPos.y - 80}
+        y2={childPos.y - 96} // Card height/2 + margin
         stroke="#6B7280"
         strokeWidth="2"
         className="hover:stroke-blue-500 transition-colors"
@@ -68,16 +68,16 @@ const renderGenerationConnections = (
   const childPositions = childIds.map(id => positions[id]).filter(Boolean);
   if (childPositions.length === 0) return null;
 
-  // Calculate bracket structure
+  // Calculate improved bracket structure
   const leftmostChild = Math.min(...childPositions.map(pos => pos.x));
   const rightmostChild = Math.max(...childPositions.map(pos => pos.x));
   const childrenCenterX = (leftmostChild + rightmostChild) / 2;
   const childrenY = childPositions[0].y;
 
-  // Vertical line from parent down
-  const parentBottomY = memberPos.y + 80; // Card height/2 + margin
-  const horizontalLineY = parentBottomY + 40; // Intermediate horizontal line
-  const childrenTopY = childrenY - 80; // Card height/2 + margin
+  // Improved positioning for cleaner lines
+  const parentBottomY = memberPos.y + 96; // Card height/2 + margin
+  const horizontalLineY = parentBottomY + 60; // More space for cleaner look
+  const childrenTopY = childrenY - 96; // Card height/2 + margin
 
   const connectionId = `parent-${member.id}-gen-${generation}`;
 
@@ -90,8 +90,9 @@ const renderGenerationConnections = (
         x2={memberPos.x}
         y2={horizontalLineY}
         stroke="#6B7280"
-        strokeWidth="2"
+        strokeWidth="2.5"
         className="hover:stroke-blue-500 transition-colors"
+        strokeLinecap="round"
       />
 
       {/* Horizontal line connecting to children area */}
@@ -101,8 +102,9 @@ const renderGenerationConnections = (
         x2={childrenCenterX}
         y2={horizontalLineY}
         stroke="#6B7280"
-        strokeWidth="2"
+        strokeWidth="2.5"
         className="hover:stroke-blue-500 transition-colors"
+        strokeLinecap="round"
       />
 
       {/* Vertical line down to children level */}
@@ -112,8 +114,9 @@ const renderGenerationConnections = (
         x2={childrenCenterX}
         y2={childrenTopY}
         stroke="#6B7280"
-        strokeWidth="2"
+        strokeWidth="2.5"
         className="hover:stroke-blue-500 transition-colors"
+        strokeLinecap="round"
       />
 
       {/* Horizontal bracket line across all children */}
@@ -124,13 +127,37 @@ const renderGenerationConnections = (
           x2={rightmostChild}
           y2={childrenTopY}
           stroke="#6B7280"
-          strokeWidth="2"
+          strokeWidth="2.5"
           className="hover:stroke-blue-500 transition-colors"
+          strokeLinecap="round"
         />
       )}
 
       {/* Vertical lines down to each child */}
       {renderChildLines(childIds, positions, childrenTopY)}
+
+      {/* Connection dots for better visual clarity */}
+      <circle
+        cx={memberPos.x}
+        cy={horizontalLineY}
+        r="3"
+        fill="#6B7280"
+        className="hover:fill-blue-500 transition-colors"
+      />
+      <circle
+        cx={childrenCenterX}
+        cy={horizontalLineY}
+        r="3"
+        fill="#6B7280"
+        className="hover:fill-blue-500 transition-colors"
+      />
+      <circle
+        cx={childrenCenterX}
+        cy={childrenTopY}
+        r="3"
+        fill="#6B7280"
+        className="hover:fill-blue-500 transition-colors"
+      />
     </g>
   );
 };
@@ -180,14 +207,14 @@ export const FamilyTreeConnections: React.FC<FamilyTreeConnectionsProps> = ({
       processedPairs.add(`${member.id}-${member.spouseId}`);
       processedPairs.add(`${member.spouseId}-${member.id}`);
 
-      // Calculate marriage line position (slightly above the cards)
-      const lineY = Math.min(memberPos.y, spousePos.y) - 20;
+      // Calculate marriage line position (above the cards)
+      const lineY = Math.min(memberPos.y, spousePos.y) - 30;
       const leftX = Math.min(memberPos.x, spousePos.x);
       const rightX = Math.max(memberPos.x, spousePos.x);
 
       connections.push(
         <g key={`marriage-${member.id}-${member.spouseId}`}>
-          {/* Marriage line */}
+          {/* Marriage line with improved styling */}
           <line
             x1={leftX}
             y1={lineY}
@@ -195,25 +222,28 @@ export const FamilyTreeConnections: React.FC<FamilyTreeConnectionsProps> = ({
             y2={lineY}
             stroke="#EF4444"
             strokeWidth="3"
-            strokeDasharray="8,4"
+            strokeDasharray="10,5"
             className="hover:stroke-red-600 transition-colors"
+            strokeLinecap="round"
           />
           
           {/* Marriage symbol in the middle */}
           <circle
             cx={(leftX + rightX) / 2}
             cy={lineY}
-            r="6"
+            r="8"
             fill="#EF4444"
             className="hover:fill-red-600 transition-colors"
+            stroke="white"
+            strokeWidth="2"
           />
           <text
             x={(leftX + rightX) / 2}
-            y={lineY + 1}
+            y={lineY + 2}
             textAnchor="middle"
-            fontSize="8"
+            fontSize="10"
             fill="white"
-            className="pointer-events-none"
+            className="pointer-events-none font-bold"
           >
             ♥
           </text>
@@ -223,19 +253,21 @@ export const FamilyTreeConnections: React.FC<FamilyTreeConnectionsProps> = ({
             x1={memberPos.x}
             y1={lineY}
             x2={memberPos.x}
-            y2={memberPos.y - 80}
+            y2={memberPos.y - 96}
             stroke="#EF4444"
-            strokeWidth="2"
+            strokeWidth="2.5"
             className="hover:stroke-red-600 transition-colors"
+            strokeLinecap="round"
           />
           <line
             x1={spousePos.x}
             y1={lineY}
             x2={spousePos.x}
-            y2={spousePos.y - 80}
+            y2={spousePos.y - 96}
             stroke="#EF4444"
-            strokeWidth="2"
+            strokeWidth="2.5"
             className="hover:stroke-red-600 transition-colors"
+            strokeLinecap="round"
           />
         </g>
       );
@@ -279,7 +311,7 @@ export const FamilyTreeConnections: React.FC<FamilyTreeConnectionsProps> = ({
 
       const leftmost = siblingPositions[0];
       const rightmost = siblingPositions[siblingPositions.length - 1];
-      const connectionY = leftmost.pos.y - 40; // Above the cards
+      const connectionY = leftmost.pos.y - 50; // Above the cards
 
       connections.push(
         <g key={`siblings-${parentKey}`}>
@@ -290,9 +322,10 @@ export const FamilyTreeConnections: React.FC<FamilyTreeConnectionsProps> = ({
             x2={rightmost.pos.x}
             y2={connectionY}
             stroke="#9CA3AF"
-            strokeWidth="1"
-            strokeDasharray="3,3"
+            strokeWidth="2"
+            strokeDasharray="5,5"
             className="hover:stroke-gray-600 transition-colors"
+            strokeLinecap="round"
           />
 
           {/* Vertical connectors to each sibling */}
@@ -302,11 +335,24 @@ export const FamilyTreeConnections: React.FC<FamilyTreeConnectionsProps> = ({
               x1={pos.x}
               y1={connectionY}
               x2={pos.x}
-              y2={pos.y - 80}
+              y2={pos.y - 96}
               stroke="#9CA3AF"
-              strokeWidth="1"
-              strokeDasharray="3,3"
+              strokeWidth="2"
+              strokeDasharray="5,5"
               className="hover:stroke-gray-600 transition-colors"
+              strokeLinecap="round"
+            />
+          ))}
+
+          {/* Connection dots */}
+          {siblingPositions.map(({ id, pos }) => (
+            <circle
+              key={`sibling-dot-${id}`}
+              cx={pos.x}
+              cy={connectionY}
+              r="2"
+              fill="#9CA3AF"
+              className="hover:fill-gray-600 transition-colors"
             />
           ))}
         </g>
@@ -340,6 +386,12 @@ export const FamilyTreeConnections: React.FC<FamilyTreeConnectionsProps> = ({
             fill="#6B7280"
           />
         </marker>
+
+        {/* Gradient for connection lines */}
+        <linearGradient id="connectionGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#6B7280" stopOpacity="0.8"/>
+          <stop offset="100%" stopColor="#6B7280" stopOpacity="1"/>
+        </linearGradient>
       </defs>
 
       {/* Render all connection types */}

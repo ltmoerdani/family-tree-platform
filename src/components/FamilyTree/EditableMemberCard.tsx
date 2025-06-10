@@ -37,7 +37,7 @@ const DirectionalPlusButton: React.FC<DirectionalPlusButtonProps> = ({ direction
       e.stopPropagation();
       onDirectionalAdd(direction);
     }}
-    className={`absolute w-6 h-6 bg-white border-2 border-blue-500 rounded-full flex items-center justify-center text-blue-600 hover:bg-blue-50 hover:scale-110 transition-all duration-200 shadow-md hover:shadow-lg group ${className}`}
+    className={`absolute w-8 h-8 bg-white border-2 border-blue-500 rounded-full flex items-center justify-center text-blue-600 hover:bg-blue-50 hover:scale-110 transition-all duration-200 shadow-lg hover:shadow-xl group ${className}`}
     title={tooltip}
   >
     {icon}
@@ -133,7 +133,7 @@ export const EditableMemberCard: React.FC<EditableMemberCardProps> = ({
         {/* Interactive button overlay for accessibility */}
         <button
           type="button"
-          className="absolute inset-0 w-full h-full bg-transparent border-none outline-none p-0 m-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-lg z-10"
+          className="absolute inset-0 w-full h-full bg-transparent border-none outline-none p-0 m-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-xl z-10"
           onClick={handleClick}
           onContextMenu={handleContextMenu}
           onKeyDown={(e: React.KeyboardEvent<HTMLButtonElement>) => {
@@ -158,20 +158,20 @@ export const EditableMemberCard: React.FC<EditableMemberCardProps> = ({
         
         <div
           id={`member-info-${member.id}`}
-          className={`w-40 bg-white rounded-lg shadow-md hover:shadow-lg border-2 transition-all duration-200 ${borderColorClass} ${selectedBorderClass} ${!member.isAlive ? 'border-gray-400 bg-gray-50' : ''}`}
+          className={`w-40 h-48 bg-white rounded-xl shadow-md hover:shadow-lg border-2 transition-all duration-200 ${borderColorClass} ${selectedBorderClass} ${!member.isAlive ? 'border-gray-400 bg-gray-50' : ''} relative overflow-hidden`}
         >
           {/* Status Indicators */}
           <output
-            className="absolute -top-2 -right-2 flex space-x-1"
+            className="absolute -top-2 -right-2 flex space-x-1 z-20"
             aria-label="Status indicators"
           >
             {member.maritalStatus === 'married' && (
-              <div className="w-4 h-4 bg-yellow-400 rounded-full border-2 border-white flex items-center justify-center">
+              <div className="w-5 h-5 bg-yellow-400 rounded-full border-2 border-white flex items-center justify-center shadow-sm">
                 <span className="text-xs">💍</span>
               </div>
             )}
             {!member.isAlive && (
-              <div className="w-4 h-4 bg-gray-600 rounded-full border-2 border-white flex items-center justify-center">
+              <div className="w-5 h-5 bg-gray-600 rounded-full border-2 border-white flex items-center justify-center shadow-sm">
                 <span className="text-xs text-white">✕</span>
               </div>
             )}
@@ -182,30 +182,30 @@ export const EditableMemberCard: React.FC<EditableMemberCardProps> = ({
             <>
               <DirectionalPlusButton
                 direction="up"
-                icon={<ArrowUp className="w-3 h-3" />}
+                icon={<ArrowUp className="w-4 h-4" />}
                 tooltip="Tambah Orang Tua"
-                className="-top-3 left-1/2 transform -translate-x-1/2"
+                className="-top-4 left-1/2 transform -translate-x-1/2"
                 onDirectionalAdd={handleDirectionalAdd}
               />
               <DirectionalPlusButton
                 direction="down"
-                icon={<ArrowDown className="w-3 h-3" />}
+                icon={<ArrowDown className="w-4 h-4" />}
                 tooltip="Tambah Anak/Keturunan"
-                className="-bottom-3 left-1/2 transform -translate-x-1/2"
+                className="-bottom-4 left-1/2 transform -translate-x-1/2"
                 onDirectionalAdd={handleDirectionalAdd}
               />
               <DirectionalPlusButton
                 direction="left"
-                icon={<ArrowLeft className="w-3 h-3" />}
+                icon={<ArrowLeft className="w-4 h-4" />}
                 tooltip="Tambah Pasangan (Kiri)"
-                className="-left-3 top-1/2 transform -translate-y-1/2"
+                className="-left-4 top-1/2 transform -translate-y-1/2"
                 onDirectionalAdd={handleDirectionalAdd}
               />
               <DirectionalPlusButton
                 direction="right"
-                icon={<ArrowRight className="w-3 h-3" />}
+                icon={<ArrowRight className="w-4 h-4" />}
                 tooltip="Tambah Pasangan (Kanan)"
-                className="-right-3 top-1/2 transform -translate-y-1/2"
+                className="-right-4 top-1/2 transform -translate-y-1/2"
                 onDirectionalAdd={handleDirectionalAdd}
               />
             </>
@@ -213,7 +213,7 @@ export const EditableMemberCard: React.FC<EditableMemberCardProps> = ({
 
           {/* Photo */}
           <div className="p-4 pb-2">
-            <div className="w-20 h-20 mx-auto rounded-full overflow-hidden bg-gray-200">
+            <div className="w-16 h-16 mx-auto rounded-full overflow-hidden bg-gray-200 shadow-sm">
               {member.photoUrl ? (
                 <img
                   src={member.photoUrl}
@@ -222,7 +222,7 @@ export const EditableMemberCard: React.FC<EditableMemberCardProps> = ({
                 />
               ) : (
                 <div 
-                  className={`w-full h-full flex items-center justify-center text-white text-2xl font-bold ${
+                  className={`w-full h-full flex items-center justify-center text-white text-lg font-bold ${
                     member.gender === 'male' ? 'bg-blue-400' : 'bg-pink-400'
                   }`}
                 >
@@ -233,10 +233,15 @@ export const EditableMemberCard: React.FC<EditableMemberCardProps> = ({
           </div>
 
           {/* Info */}
-          <div className="px-4 pb-4 text-center">
-            <h3 className="font-bold text-gray-900 text-sm leading-tight mb-1">
+          <div className="px-3 pb-4 text-center">
+            <h3 className="font-bold text-gray-900 text-sm leading-tight mb-1 truncate">
               {member.name}
             </h3>
+            {member.nickname && (
+              <p className="text-xs text-gray-500 mb-1 italic truncate">
+                "{member.nickname}"
+              </p>
+            )}
             <p className="text-xs text-gray-600">
               {getYearDisplay()}
             </p>
@@ -247,9 +252,9 @@ export const EditableMemberCard: React.FC<EditableMemberCardProps> = ({
             )}
           </div>
 
-          {/* Generation Indicator */}
-          <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2">
-            <div className={`w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center text-white ${
+          {/* Generation Badge */}
+          <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
+            <div className={`w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center text-white shadow-sm ${
               member.gender === 'male' ? 'bg-blue-500' : 'bg-pink-500'
             }`}>
               {member.generation}
@@ -258,7 +263,7 @@ export const EditableMemberCard: React.FC<EditableMemberCardProps> = ({
 
           {/* Edit Mode Overlay */}
           {editMode && (
-            <div className="absolute inset-0 bg-blue-100 bg-opacity-20 rounded-lg pointer-events-none" />
+            <div className="absolute inset-0 bg-blue-100 bg-opacity-20 rounded-xl pointer-events-none" />
           )}
         </div>
       </div>

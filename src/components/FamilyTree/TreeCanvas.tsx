@@ -67,9 +67,10 @@ export const TreeCanvas: React.FC = () => {
       generationGroups[member.generation].push(member);
     });
 
-    const generationHeight = 300;
-    const cardSpacing = 250;
-    const padding = 200;
+    // Improved spacing calculations
+    const generationHeight = 320; // Increased for better spacing
+    const cardSpacing = 280; // Increased for better card separation
+    const padding = 300; // Increased padding
 
     const maxMembersInGeneration = Math.max(
       ...Object.values(generationGroups).map(gen => gen.length)
@@ -80,8 +81,8 @@ export const TreeCanvas: React.FC = () => {
     const requiredHeight = (numberOfGenerations - 1) * generationHeight + (padding * 2);
 
     return {
-      width: Math.max(1200, requiredWidth),
-      height: Math.max(800, requiredHeight)
+      width: Math.max(1400, requiredWidth), // Increased minimum width
+      height: Math.max(900, requiredHeight) // Increased minimum height
     };
   }, [members]);
 
@@ -126,8 +127,8 @@ export const TreeCanvas: React.FC = () => {
 
     const centerX = canvasDimensions.width / 2;
     const centerY = canvasDimensions.height / 2;
-    const generationHeight = 300;
-    const cardSpacing = 250;
+    const generationHeight = 320; // Increased spacing
+    const cardSpacing = 280; // Increased spacing
 
     const generationKeys = Object.keys(generationGroups).map(Number).sort((a, b) => a - b);
     const middleGenIndex = Math.floor(generationKeys.length / 2);
@@ -138,15 +139,24 @@ export const TreeCanvas: React.FC = () => {
       // Sort members in generation by family relationships
       const sortedMembers = sortMembersByRelationships(membersInGen);
       
+      // Improved positioning algorithm
       const totalWidth = (sortedMembers.length - 1) * cardSpacing;
       const relativeGenIndex = indexInArray - middleGenIndex;
       const y = centerY + (relativeGenIndex * generationHeight);
-      const startX = centerX - (totalWidth / 2);
       
-      sortedMembers.forEach((member, memberIndex) => {
-        const x = startX + (memberIndex * cardSpacing);
-        positions[member.id] = { x, y };
-      });
+      // Better horizontal distribution
+      if (sortedMembers.length === 1) {
+        // Single member - center it
+        positions[sortedMembers[0].id] = { x: centerX, y };
+      } else {
+        // Multiple members - distribute evenly
+        const startX = centerX - (totalWidth / 2);
+        
+        sortedMembers.forEach((member, memberIndex) => {
+          const x = startX + (memberIndex * cardSpacing);
+          positions[member.id] = { x, y };
+        });
+      }
     });
 
     return positions;
@@ -473,6 +483,7 @@ export const TreeCanvas: React.FC = () => {
                       member={member}
                       position={position}
                       showConnections={true}
+                      size="medium"
                     />
                   )}
                 </div>
@@ -489,13 +500,13 @@ export const TreeCanvas: React.FC = () => {
           ).map(generation => (
             <div
               key={`gen-${generation}`}
-              className={`absolute left-4 px-3 py-1 rounded-full shadow-sm border text-sm font-medium transition-colors pointer-events-none ${
+              className={`absolute left-8 px-4 py-2 rounded-full shadow-sm border text-sm font-medium transition-colors pointer-events-none ${
                 editMode 
                   ? 'bg-blue-100 border-blue-300 text-blue-800' 
                   : 'bg-white border-gray-300 text-gray-600'
               }`}
               style={{
-                top: 120 + ((parseInt(generation) - 1) * 300),
+                top: 150 + ((parseInt(generation) - 1) * 320),
               }}
             >
               Generasi {generation}

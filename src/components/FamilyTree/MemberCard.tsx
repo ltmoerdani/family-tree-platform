@@ -7,13 +7,15 @@ interface MemberCardProps {
   position: { x: number; y: number };
   isSelected?: boolean;
   showConnections?: boolean;
+  size?: 'small' | 'medium' | 'large';
 }
 
 export const MemberCard: React.FC<MemberCardProps> = ({ 
   member, 
   position, 
   isSelected = false,
-  showConnections = true 
+  showConnections = true,
+  size = 'medium'
 }) => {
   const { setSelectedMember, selectedMember } = useFamilyStore();
 
@@ -52,11 +54,19 @@ export const MemberCard: React.FC<MemberCardProps> = ({
     return currentYear - birthYear;
   };
 
-  const getCardShape = () => {
-    // Laki-laki: kotak dengan sudut sedikit rounded
-    // Perempuan: lingkaran/oval
-    return member.gender === 'male' ? 'rounded-lg' : 'rounded-full';
+  // Consistent card sizing
+  const getCardSize = () => {
+    switch (size) {
+      case 'small':
+        return { width: 'w-32', height: 'h-40', photo: 'w-12 h-12', text: 'text-xs' };
+      case 'large':
+        return { width: 'w-48', height: 'h-56', photo: 'w-24 h-24', text: 'text-sm' };
+      default:
+        return { width: 'w-40', height: 'h-48', photo: 'w-16 h-16', text: 'text-sm' };
+    }
   };
+
+  const cardSize = getCardSize();
 
   const getBorderColor = () => {
     if (!member.isAlive) return 'border-gray-400';
@@ -103,13 +113,13 @@ export const MemberCard: React.FC<MemberCardProps> = ({
     >
       <button
         type="button"
-        className={`w-40 ${getBackgroundColor()} ${getCardShape()} shadow-md hover:shadow-lg border-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 ${
+        className={`${cardSize.width} ${cardSize.height} ${getBackgroundColor()} rounded-xl shadow-md hover:shadow-lg border-2 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 ${
           getBorderColor()
         } ${
           currentlySelected ? 'shadow-lg ring-2 ring-blue-400' : ''
         } ${
           !member.isAlive ? 'opacity-75' : ''
-        }`}
+        } relative overflow-hidden`}
         onClick={handleClick}
         onKeyDown={handleKeyDown}
         aria-label={getAriaLabel()}
@@ -118,12 +128,12 @@ export const MemberCard: React.FC<MemberCardProps> = ({
         {/* Status Indicators */}
         <div className="absolute -top-2 -right-2 flex space-x-1 z-10">
           {member.maritalStatus === 'married' && (
-            <div className="w-4 h-4 bg-yellow-400 rounded-full border-2 border-white flex items-center justify-center">
-              <span className="text-xs" aria-hidden="true">💍</span>
+            <div className="w-5 h-5 bg-yellow-400 rounded-full border-2 border-white flex items-center justify-center shadow-sm">
+              <span className="text-xs\" aria-hidden="true">💍</span>
             </div>
           )}
           {!member.isAlive && (
-            <div className="w-4 h-4 bg-gray-600 rounded-full border-2 border-white flex items-center justify-center">
+            <div className="w-5 h-5 bg-gray-600 rounded-full border-2 border-white flex items-center justify-center shadow-sm">
               <span className="text-xs text-white" aria-hidden="true">✕</span>
             </div>
           )}
@@ -131,7 +141,7 @@ export const MemberCard: React.FC<MemberCardProps> = ({
 
         {/* Photo */}
         <div className="p-4 pb-2">
-          <div className={`w-20 h-20 mx-auto ${member.gender === 'female' ? 'rounded-full' : 'rounded-lg'} overflow-hidden bg-gray-200`}>
+          <div className={`${cardSize.photo} mx-auto rounded-full overflow-hidden bg-gray-200 shadow-sm`}>
             {member.photoUrl ? (
               <img
                 src={member.photoUrl}
@@ -140,7 +150,7 @@ export const MemberCard: React.FC<MemberCardProps> = ({
               />
             ) : (
               <div 
-                className={`w-full h-full flex items-center justify-center text-white text-2xl font-bold ${
+                className={`w-full h-full flex items-center justify-center text-white text-lg font-bold ${
                   getPhotoBackgroundColor()
                 }`}
               >
@@ -151,12 +161,12 @@ export const MemberCard: React.FC<MemberCardProps> = ({
         </div>
 
         {/* Info */}
-        <div className="px-4 pb-4 text-center">
-          <h3 className="font-bold text-gray-900 text-sm leading-tight mb-1">
+        <div className="px-3 pb-4 text-center">
+          <h3 className={`font-bold text-gray-900 ${cardSize.text} leading-tight mb-1 truncate`}>
             {member.name}
           </h3>
           {member.nickname && (
-            <p className="text-xs text-gray-500 mb-1 italic">
+            <p className="text-xs text-gray-500 mb-1 italic truncate">
               "{member.nickname}"
             </p>
           )}
@@ -174,8 +184,8 @@ export const MemberCard: React.FC<MemberCardProps> = ({
         </div>
 
         {/* Generation Badge */}
-        <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2">
-          <div className={`w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center text-white ${
+        <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
+          <div className={`w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center text-white shadow-sm ${
             getGenerationBadgeColor()
           }`}>
             {member.generation}
@@ -186,16 +196,16 @@ export const MemberCard: React.FC<MemberCardProps> = ({
         {showConnections && (
           <>
             {/* Top connection point (for parents) */}
-            <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-300 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-3 h-3 bg-gray-300 rounded-full opacity-0 group-hover:opacity-100 transition-opacity border-2 border-white" />
             
             {/* Bottom connection point (for children) */}
-            <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-300 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-3 h-3 bg-gray-300 rounded-full opacity-0 group-hover:opacity-100 transition-opacity border-2 border-white" />
             
             {/* Left connection point (for spouse/siblings) */}
-            <div className="absolute top-1/2 -left-1 transform -translate-y-1/2 w-2 h-2 bg-gray-300 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute top-1/2 -left-1 transform -translate-y-1/2 w-3 h-3 bg-gray-300 rounded-full opacity-0 group-hover:opacity-100 transition-opacity border-2 border-white" />
             
             {/* Right connection point (for spouse/siblings) */}
-            <div className="absolute top-1/2 -right-1 transform -translate-y-1/2 w-2 h-2 bg-gray-300 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute top-1/2 -right-1 transform -translate-y-1/2 w-3 h-3 bg-gray-300 rounded-full opacity-0 group-hover:opacity-100 transition-opacity border-2 border-white" />
           </>
         )}
       </button>
