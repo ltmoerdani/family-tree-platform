@@ -4,7 +4,6 @@ import { Header } from '../Header/Header';
 import { Toolbar } from '../Toolbar/Toolbar';
 import { StatsSidebar } from '../Sidebar/StatsSidebar';
 import { BottomNavigation } from '../BottomNavigation/BottomNavigation';
-import { CanvasControls } from './CanvasControls';
 import { UnifiedMemberModal } from '../Forms/UnifiedMemberModal';
 import { TreeCanvas } from './TreeCanvas';
 import { useFamilyStore } from '../../store/familyStore';
@@ -38,18 +37,8 @@ export const NewFamilyTreeCanvas: React.FC<NewFamilyTreeCanvasProps> = ({
       {/* Header */}
       <Header onMenuToggle={handleMenuToggle} familyName={familyTreeName} />
       
-      {/* Back to Dashboard Button */}
-      <div className="bg-white border-b border-gray-200 px-4 py-2">
-        <button
-          onClick={onBackToDashboard}
-          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-        >
-          ← Kembali ke Dashboard
-        </button>
-      </div>
-      
       {/* Toolbar */}
-      <Toolbar />
+      <Toolbar onBackToDashboard={onBackToDashboard} />
       
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
@@ -136,17 +125,6 @@ export const NewFamilyTreeCanvas: React.FC<NewFamilyTreeCanvasProps> = ({
       {/* Bottom Navigation */}
       <BottomNavigation />
       
-      {/* Canvas Controls - Consistent positioning */}
-      <div 
-        className="fixed right-4 pointer-events-auto"
-        style={{
-          bottom: '80px', // Above bottom navigation
-          zIndex: 1000,
-        }}
-      >
-        <CanvasControls />
-      </div>
-
       {/* Add First Member Modal */}
       <UnifiedMemberModal
         isOpen={showAddFirstMemberModal}

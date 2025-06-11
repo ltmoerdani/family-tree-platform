@@ -8,7 +8,6 @@ import { StatsSidebar } from './components/Sidebar/StatsSidebar';
 import { MemberDetailSidebar } from './components/Sidebar/MemberDetailSidebar';
 import { FamilyTreeView } from './components/FamilyTree/FamilyTreeView';
 import { BottomNavigation } from './components/BottomNavigation/BottomNavigation';
-import { CanvasControls } from './components/FamilyTree/CanvasControls';
 
 import { useFamilyStore } from './store/familyStore';
 import { useDashboardStore } from './store/dashboardStore';
@@ -16,7 +15,7 @@ import { useAuthStore } from './store/authStore';
 import { mockFamilyData } from './data/mockData';
 
 function App() {
-  const { setMembers, selectedMember, viewMode } = useFamilyStore();
+  const { setMembers, selectedMember } = useFamilyStore();
   const { familyTrees } = useDashboardStore();
   useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -103,21 +102,13 @@ function App() {
           {/* Header with consistent family name display */}
           <Header onMenuToggle={handleMenuToggle} familyName={currentFamilyTreeName} />
           
-          {/* Back to Dashboard Button */}
-          <div className="bg-white border-b border-gray-200 px-4 py-2">
-            <button
-              onClick={() => {
-                window.history.pushState({}, '', '/dashboard');
-                setCurrentView('dashboard');
-              }}
-              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-            >
-              ← Kembali ke Dashboard
-            </button>
-          </div>
-          
           {/* Toolbar */}
-          <Toolbar />
+          <Toolbar 
+            onBackToDashboard={() => {
+              window.history.pushState({}, '', '/dashboard');
+              setCurrentView('dashboard');
+            }}
+          />
           
           {/* Main Content */}
           <div className="flex flex-1 overflow-hidden">
@@ -137,19 +128,6 @@ function App() {
           
           {/* Bottom Navigation */}
           <BottomNavigation />
-          
-          {/* Canvas Controls - Consistent for all family trees */}
-          {viewMode.type === 'tree' && (
-            <div 
-              className="fixed right-4 pointer-events-auto"
-              style={{
-                bottom: '80px',
-                zIndex: 1000,
-              }}
-            >
-              <CanvasControls />
-            </div>
-          )}
         </div>
       )}
     </ProtectedRoute>

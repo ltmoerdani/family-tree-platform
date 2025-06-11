@@ -1,21 +1,16 @@
 import * as React from 'react';
-import { Eye, ZoomIn, ZoomOut, Maximize, Edit3, Save, X } from 'lucide-react';
+import { Eye, Edit3, Save, X, ArrowLeft } from 'lucide-react';
 import { useFamilyStore } from '../../store/familyStore';
 
-export const Toolbar: React.FC = () => {
+interface ToolbarProps {
+  onBackToDashboard?: () => void;
+}
+
+export const Toolbar: React.FC<ToolbarProps> = ({ onBackToDashboard }) => {
   const { viewMode, setViewMode, editMode, setEditMode, hasUnsavedChanges } = useFamilyStore();
 
   const handleViewChange = (type: 'tree' | 'card' | 'list') => {
     setViewMode({ type });
-  };
-
-  const handleZoomChange = (delta: number) => {
-    const newZoom = Math.max(25, Math.min(200, viewMode.zoom + delta));
-    setViewMode({ zoom: newZoom });
-  };
-
-  const handleFitScreen = () => {
-    setViewMode({ zoom: 100 });
   };
 
   const handleEditModeToggle = () => {
@@ -28,12 +23,26 @@ export const Toolbar: React.FC = () => {
     }
   };
 
-  const isZoomDisabled = viewMode.type !== 'tree';
-
   return (
     <div className="bg-white border-b border-gray-200 px-4 py-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-6">
+          {/* Back to Dashboard Button */}
+          {onBackToDashboard && (
+            <button
+              onClick={onBackToDashboard}
+              className="flex items-center space-x-2 text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Dashboard</span>
+            </button>
+          )}
+
+          {/* Divider */}
+          {onBackToDashboard && (
+            <div className="h-6 w-px bg-gray-300" />
+          )}
+
           {/* View Mode */}
           <div className="flex items-center space-x-2">
             <span className="text-sm font-medium text-gray-700">View:</span>
@@ -140,75 +149,26 @@ export const Toolbar: React.FC = () => {
           </div>
         </div>
 
-        {/* Zoom Controls - Only for Tree View */}
-        <div className="flex items-center space-x-4">
-          {/* Edit Mode Actions */}
-          {editMode && (
-            <div className="flex items-center space-x-2 mr-4">
-              <button
-                onClick={() => {/* Handle save all changes */}}
-                className="flex items-center space-x-1 px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-              >
-                <Save className="w-4 h-4" />
-                <span>Simpan Semua</span>
-              </button>
-              
-              <button
-                onClick={() => setEditMode(false)}
-                className="flex items-center space-x-1 px-3 py-1.5 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
-              >
-                <X className="w-4 h-4" />
-                <span>Keluar Edit</span>
-              </button>
-            </div>
-          )}
-
-          <div className={`flex items-center space-x-2 ${isZoomDisabled ? 'opacity-50' : ''}`}>
+        {/* Edit Mode Actions */}
+        {editMode && (
+          <div className="flex items-center space-x-2">
             <button
-              onClick={() => handleZoomChange(-25)}
-              disabled={isZoomDisabled || viewMode.zoom <= 25}
-              className="p-1.5 rounded hover:bg-gray-100 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+              onClick={() => {/* Handle save all changes */}}
+              className="flex items-center space-x-1 px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
             >
-              <ZoomOut className="w-4 h-4" />
+              <Save className="w-4 h-4" />
+              <span>Simpan Semua</span>
             </button>
             
-            <div className="flex items-center space-x-2">
-              <input
-                type="range"
-                min="25"
-                max="200"
-                value={viewMode.zoom}
-                onChange={(e) => setViewMode({ zoom: parseInt(e.target.value) })}
-                disabled={isZoomDisabled}
-                className="w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer disabled:cursor-not-allowed"
-              />
-              <span className="text-sm font-medium text-gray-700 w-12">
-                {viewMode.zoom}%
-              </span>
-            </div>
-            
             <button
-              onClick={() => handleZoomChange(25)}
-              disabled={isZoomDisabled || viewMode.zoom >= 200}
-              className="p-1.5 rounded hover:bg-gray-100 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+              onClick={() => setEditMode(false)}
+              className="flex items-center space-x-1 px-3 py-1.5 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
             >
-              <ZoomIn className="w-4 h-4" />
+              <X className="w-4 h-4" />
+              <span>Keluar Edit</span>
             </button>
           </div>
-          
-          <button
-            onClick={handleFitScreen}
-            disabled={isZoomDisabled}
-            className={`flex items-center space-x-1 px-3 py-1.5 text-sm rounded-md transition-colors ${
-              isZoomDisabled 
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                : 'bg-blue-600 text-white hover:bg-blue-700'
-            }`}
-          >
-            <Maximize className="w-4 h-4" />
-            <span>Fit Screen</span>
-          </button>
-        </div>
+        )}
       </div>
 
       {/* Edit Mode Info Bar */}
