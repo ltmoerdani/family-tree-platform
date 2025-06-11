@@ -2,14 +2,12 @@ import { useEffect, useState } from 'react';
 import { ProtectedRoute } from './components/Auth/ProtectedRoute';
 import { Dashboard } from './components/Dashboard/Dashboard';
 import { UpgradePage } from './components/Upgrade/UpgradePage';
-import { NewFamilyTreeCanvas } from './components/FamilyTree/NewFamilyTreeCanvas';
 import { Header } from './components/Header/Header';
 import { Toolbar } from './components/Toolbar/Toolbar';
 import { StatsSidebar } from './components/Sidebar/StatsSidebar';
 import { MemberDetailSidebar } from './components/Sidebar/MemberDetailSidebar';
 import { FamilyTreeView } from './components/FamilyTree/FamilyTreeView';
 import { BottomNavigation } from './components/BottomNavigation/BottomNavigation';
-import { CanvasControls } from './components/FamilyTree/CanvasControls';
 
 import { useFamilyStore } from './store/familyStore';
 import { useDashboardStore } from './store/dashboardStore';
@@ -17,11 +15,11 @@ import { useAuthStore } from './store/authStore';
 import { mockFamilyData } from './data/mockData';
 
 function App() {
-  const { setMembers, selectedMember, viewMode } = useFamilyStore();
+  const { setMembers, selectedMember } = useFamilyStore();
   const { familyTrees } = useDashboardStore();
-  const { user } = useAuthStore();
+  useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'family-tree' | 'new-family-tree' | 'upgrade'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'family-tree' | 'upgrade'>('dashboard');
   const [currentFamilyTreeName, setCurrentFamilyTreeName] = useState<string>('');
 
   useEffect(() => {
@@ -40,14 +38,16 @@ function App() {
       }
       
       setCurrentFamilyTreeName(familyTree.name);
+      setCurrentView('family-tree');
       
-      // For Wijaya family (existing), show normal family tree view
+      // Load appropriate data based on family tree
       if (treeId === 'wijaya-family') {
-        setCurrentView('family-tree');
+        // Load existing mock data for Wijaya family
         setMembers(mockFamilyData);
       } else {
-        // For new family trees, show new canvas
-        setCurrentView('new-family-tree');
+        // For new family trees, start with empty members array
+        // TreeCanvas will handle empty state properly
+        setMembers([]);
       }
     } else if (path === '/upgrade') {
       setCurrentView('upgrade');
@@ -74,12 +74,13 @@ function App() {
         }
         
         setCurrentFamilyTreeName(familyTree.name);
+        setCurrentView('family-tree');
         
+        // Load data consistently
         if (treeId === 'wijaya-family') {
-          setCurrentView('family-tree');
           setMembers(mockFamilyData);
         } else {
-          setCurrentView('new-family-tree');
+          setMembers([]);
         }
       } else if (path === '/upgrade') {
         setCurrentView('upgrade');
@@ -94,38 +95,20 @@ function App() {
 
   return (
     <ProtectedRoute>
-      {/* Refactored nested ternary to independent statements */}
       {currentView === 'dashboard' && <Dashboard />}
       {currentView === 'upgrade' && <UpgradePage />}
-      {currentView === 'new-family-tree' && (
-        <NewFamilyTreeCanvas
-          familyTreeName={currentFamilyTreeName}
-          onBackToDashboard={() => {
-            window.history.pushState({}, '', '/dashboard');
-            setCurrentView('dashboard');
-          }}
-        />
-      )}
       {currentView === 'family-tree' && (
         <div className="h-screen flex flex-col bg-gray-50">
-          {/* Header */}
-          <Header onMenuToggle={handleMenuToggle} familyName={user?.familyName ?? "Keluarga"} />
-          
-          {/* Back to Dashboard Button */}
-          <div className="bg-white border-b border-gray-200 px-4 py-2">
-            <button
-              onClick={() => {
-                window.history.pushState({}, '', '/dashboard');
-                setCurrentView('dashboard');
-              }}
-              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-            >
-              ← Kembali ke Dashboard
-            </button>
-          </div>
+          {/* Header with consistent family name display */}
+          <Header onMenuToggle={handleMenuToggle} familyName={currentFamilyTreeName} />
           
           {/* Toolbar */}
-          <Toolbar />
+          <Toolbar 
+            onBackToDashboard={() => {
+              window.history.pushState({}, '', '/dashboard');
+              setCurrentView('dashboard');
+            }}
+          />
           
           {/* Main Content */}
           <div className="flex flex-1 overflow-hidden">
@@ -134,7 +117,7 @@ function App() {
               <StatsSidebar />
             </div>
             
-            {/* Main Canvas Area */}
+            {/* Main Canvas Area - Always use FamilyTreeView for consistency */}
             <div className="flex-1 flex flex-col">
               <FamilyTreeView />
             </div>
@@ -145,20 +128,6 @@ function App() {
           
           {/* Bottom Navigation */}
           <BottomNavigation />
-          
-          {/* Canvas Controls - Fixed position on right side, above bottom navigation */}
-          {/* Only show when in tree view mode */}
-          {viewMode.type === 'tree' && (
-            <div 
-              className="fixed right-4 pointer-events-auto"
-              style={{
-                bottom: '80px', // Above bottom navigation (assuming 64px height + 16px margin)
-                zIndex: 1000,
-              }}
-            >
-              <CanvasControls />
-            </div>
-          )}
         </div>
       )}
     </ProtectedRoute>

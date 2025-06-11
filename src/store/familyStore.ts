@@ -10,6 +10,7 @@ interface FamilyStore {
   stats: FamilyStats;
   editMode: boolean;
   hasUnsavedChanges: boolean;
+  currentFamilyTreeId: string | null;
   
   // Actions
   setMembers: (members: FamilyMember[]) => void;
@@ -19,6 +20,7 @@ interface FamilyStore {
   setTreePosition: (position: Partial<TreePosition>) => void;
   setEditMode: (enabled: boolean) => void;
   setHasUnsavedChanges: (hasChanges: boolean) => void;
+  setCurrentFamilyTreeId: (id: string | null) => void;
   updateStats: () => void;
   addMember: (member: FamilyMember) => void;
   updateMember: (id: string, updates: Partial<FamilyMember>) => void;
@@ -44,6 +46,7 @@ export const useFamilyStore = create<FamilyStore>((set, get) => ({
   },
   editMode: false,
   hasUnsavedChanges: false,
+  currentFamilyTreeId: null,
   stats: {
     totalMembers: 0,
     totalGenerations: 0,
@@ -79,15 +82,17 @@ export const useFamilyStore = create<FamilyStore>((set, get) => ({
 
   setHasUnsavedChanges: (hasChanges) => set({ hasUnsavedChanges: hasChanges }),
 
+  setCurrentFamilyTreeId: (id: string | null) => set({ currentFamilyTreeId: id }),
+
   updateStats: () => {
     const { members } = get();
     const currentYear = new Date().getFullYear();
     
     const stats: FamilyStats = {
       totalMembers: members.length,
-      totalGenerations: Math.max(...members.map(m => m.generation), 0),
-      maleCount: members.filter(m => m.gender === 'male').length,
-      femaleCount: members.filter(m => m.gender === 'female').length,
+      totalGenerations: Math.max(...members.map((m: FamilyMember) => m.generation), 0),
+      maleCount: members.filter((m: FamilyMember) => m.gender === 'male').length,
+      femaleCount: members.filter((m: FamilyMember) => m.gender === 'female').length,
       ageDistribution: {
         '0-18': 0,
         '19-35': 0,
@@ -97,9 +102,9 @@ export const useFamilyStore = create<FamilyStore>((set, get) => ({
       locationDistribution: {},
     };
 
-    members.forEach(member => {
+    members.forEach((member: FamilyMember) => {
       // Helper function to calculate age
-      const calculateAge = (member: FamilyMember) => {
+      const calculateAge = (member: FamilyMember): number => {
         const birthYear = new Date(member.birthDate).getFullYear();
         if (member.isAlive) {
           return currentYear - birthYear;
@@ -125,22 +130,32 @@ export const useFamilyStore = create<FamilyStore>((set, get) => ({
     set({ stats });
   },
 
-  addMember: (member) => {
-    const members = [...get().members, member];
-    set({ members, hasUnsavedChanges: true });
-    get().updateStats();
+  addMember: (newMember: FamilyMember) => {
+    const member: FamilyMember = {
+      ...newMember,
+      id: newMember.id || `member-${Date.now()}`,
+      generation: newMember.generation || 1,
+      maritalStatus: newMember.maritalStatus || 'single',
+      isAlive: newMember.isAlive ?? true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    set((state) => ({
+      members: [...state.members, member],
+    }));
   },
 
-  updateMember: (id, updates) => {
-    const members = get().members.map(m => 
+  updateMember: (id: string, updates: Partial<FamilyMember>) => {
+    const members = get().members.map((m: FamilyMember) => 
       m.id === id ? { ...m, ...updates } : m
     );
     set({ members, hasUnsavedChanges: true });
     get().updateStats();
   },
 
-  deleteMember: (id) => {
-    const members = get().members.filter(m => m.id !== id);
+  deleteMember: (id: string) => {
+    const members = get().members.filter((m: FamilyMember) => m.id !== id);
     set({ members, hasUnsavedChanges: true });
     get().updateStats();
   },
@@ -185,62 +200,32 @@ export const useFamilyStore = create<FamilyStore>((set, get) => ({
     }
 
     // Create new member with calculated generation
-    const newMember: FamilyMember = {
+    const newMember = {
       ...member,
-      generation: newGeneration
+      id: `member-${Date.now()}`,
+      generation: newGeneration,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
-    // Update relationships based on type
+    // Update relationships
     const updatedMembers = [...members, newMember];
     
-    // Update target member's relationships
-    const updatedTargetMember = { ...targetMember };
-    
-    switch (relationshipType) {
-      case 'father':
-      case 'mother':
-      case 'grandfather':
-      case 'grandmother':
-        // Add as parent
-        updatedTargetMember.parentIds ??= [];
-        updatedTargetMember.parentIds.push(newMember.id);
-        
-        // Add target as child to new member
-        newMember.childrenIds = [targetMemberId];
-        break;
-        
-      case 'biological_child':
-      case 'step_child':
-      case 'adopted_child':
-      case 'grandchild':
-      case 'great_grandchild':
-        // Add as child
-        updatedTargetMember.childrenIds ??= [];
-        updatedTargetMember.childrenIds.push(newMember.id);
-        
-        // Add target as parent to new member
-        newMember.parentIds = [targetMemberId];
-        break;
-        
-      case 'husband':
-      case 'wife':
-      case 'partner':
-        // Set as spouse
-        updatedTargetMember.spouseId = newMember.id;
-        newMember.spouseId = targetMemberId;
-        
-        // Update marital status
-        updatedTargetMember.maritalStatus = 'married';
-        newMember.maritalStatus = 'married';
-        break;
+    // Update target member relationships if needed
+    if (['biological_child', 'step_child', 'adopted_child'].includes(relationshipType)) {
+      const targetIndex = updatedMembers.findIndex(m => m.id === targetMemberId);
+      if (targetIndex !== -1) {
+        updatedMembers[targetIndex] = {
+          ...updatedMembers[targetIndex],
+          childrenIds: [...(updatedMembers[targetIndex].childrenIds || []), newMember.id]
+        };
+      }
+      
+      // Set parent relationship for new member
+      newMember.parentIds = [targetMemberId];
     }
 
-    // Update the members array
-    const finalMembers = updatedMembers.map(m => 
-      m.id === targetMemberId ? updatedTargetMember : m
-    );
-
-    set({ members: finalMembers, hasUnsavedChanges: true });
+    set({ members: updatedMembers });
     get().updateStats();
   },
 }));

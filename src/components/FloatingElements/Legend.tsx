@@ -22,10 +22,6 @@ export const Legend: React.FC = () => {
           <span>Hubungan Keluarga</span>
         </div>
         <div className="flex items-center space-x-2">
-          <div className="w-3 h-0.5 bg-red-500" style={{ backgroundImage: 'repeating-linear-gradient(to right, transparent, transparent 2px, #EF4444 2px, #EF4444 4px)' }}></div>
-          <span>Pernikahan</span>
-        </div>
-        <div className="flex items-center space-x-2">
           <div className="w-3 h-3 bg-yellow-400 rounded-full text-xs flex items-center justify-center">💍</div>
           <span>Menikah</span>
         </div>

@@ -14,7 +14,7 @@ export const mockFamilyData: FamilyMember[] = [
     gender: 'male',
     photoUrl: 'https://images.pexels.com/photos/91227/pexels-photo-91227.jpeg?auto=compress&cs=tinysrgb&w=150',
     spouseId: '2',
-    childrenIds: ['3', '4', '5'],
+    childrenIds: ['3', '5'], // Hanya Andi dan Dedi
     isAlive: false,
     generation: 1,
     maritalStatus: 'married',
@@ -30,13 +30,13 @@ export const mockFamilyData: FamilyMember[] = [
     gender: 'female',
     photoUrl: 'https://images.pexels.com/photos/415829/pexels-photo-415829.jpeg?auto=compress&cs=tinysrgb&w=150',
     spouseId: '1',
-    childrenIds: ['3', '4', '5'],
+    childrenIds: ['3', '5'], // Hanya Andi dan Dedi
     isAlive: false,
     generation: 1,
     maritalStatus: 'married',
   },
 
-  // Generation 2 (Parents)
+  // Generation 2 (Children of Budi & Siti)
   {
     id: '3',
     name: 'Andi Wijaya',
@@ -48,30 +48,11 @@ export const mockFamilyData: FamilyMember[] = [
     education: 'S1 Ekonomi',
     gender: 'male',
     photoUrl: 'https://images.pexels.com/photos/1040880/pexels-photo-1040880.jpeg?auto=compress&cs=tinysrgb&w=150',
-    spouseId: '4',
-    parentIds: ['1', '2'],
-    childrenIds: ['6', '7'],
-    siblingIds: ['5'],
+    parentIds: ['1', '2'], // Budi & Siti
+    childrenIds: ['6', '7'], // Rudi & Maya
+    siblingIds: ['5'], // Hanya Dedi sebagai saudara
     email: 'andi.wijaya@email.com',
     phone: '+62812345678',
-    isAlive: true,
-    generation: 2,
-    maritalStatus: 'married',
-  },
-  {
-    id: '4',
-    name: 'Sari Wijaya',
-    birthDate: '1975-09-08',
-    birthPlace: 'Bandung',
-    currentLocation: 'Jakarta Selatan',
-    profession: 'Dokter',
-    education: 'S1 Kedokteran',
-    gender: 'female',
-    photoUrl: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150',
-    spouseId: '3',
-    childrenIds: ['6', '7'],
-    email: 'sari.wijaya@email.com',
-    phone: '+62812345679',
     isAlive: true,
     generation: 2,
     maritalStatus: 'married',
@@ -86,15 +67,37 @@ export const mockFamilyData: FamilyMember[] = [
     education: 'S1 Teknik',
     gender: 'male',
     photoUrl: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150',
-    parentIds: ['1', '2'],
-    childrenIds: ['8', '9', '10', '11'],
-    siblingIds: ['3'],
+    parentIds: ['1', '2'], // Budi & Siti
+    spouseId: '4', // Sari sebagai istri
+    childrenIds: ['8', '9', '10', '11'], // Arif, Lia, Kenzo, Aira
+    siblingIds: ['3'], // Hanya Andi sebagai saudara
     isAlive: true,
     generation: 2,
     maritalStatus: 'married',
   },
 
-  // Generation 3 (Children)
+  // Sari sebagai istri Dedi (Generation 2, tapi bukan anak Budi & Siti)
+  {
+    id: '4',
+    name: 'Sari Handayani', // Consistent naming dengan keluarga asal berbeda
+    birthDate: '1975-09-08',
+    birthPlace: 'Bandung',
+    currentLocation: 'Surabaya', // Konsisten dengan lokasi keluarga
+    profession: 'Dokter',
+    education: 'S1 Kedokteran',
+    gender: 'female',
+    photoUrl: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150',
+    spouseId: '5', // Dedi sebagai suami
+    childrenIds: ['8', '9', '10', '11'], // Consistent dengan spacing pattern
+    email: 'sari.handayani@email.com',
+    phone: '+62812345679',
+    isAlive: true,
+    generation: 2, // Same generation as Dedi untuk spacing consistency
+    maritalStatus: 'married',
+  },
+
+  // Generation 3 (Grandchildren)
+  // Anak-anak Andi (perlu tambah istri Andi untuk kelengkapan)
   {
     id: '6',
     name: 'Rudi Wijaya',
@@ -105,7 +108,7 @@ export const mockFamilyData: FamilyMember[] = [
     education: 'S1 Informatika',
     gender: 'male',
     photoUrl: 'https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=150',
-    parentIds: ['3', '4'],
+    parentIds: ['3'], // Andi (perlu pasangan Andi untuk lengkap)
     siblingIds: ['7'],
     email: 'rudi.wijaya@email.com',
     phone: '+62812345680',
@@ -123,7 +126,7 @@ export const mockFamilyData: FamilyMember[] = [
     education: 'S1 Psikologi',
     gender: 'female',
     photoUrl: 'https://images.pexels.com/photos/1065084/pexels-photo-1065084.jpeg?auto=compress&cs=tinysrgb&w=150',
-    parentIds: ['3', '4'],
+    parentIds: ['3'], // Andi
     siblingIds: ['6'],
     email: 'maya.wijaya@email.com',
     phone: '+62812345681',
@@ -131,6 +134,8 @@ export const mockFamilyData: FamilyMember[] = [
     generation: 3,
     maritalStatus: 'single',
   },
+
+  // Anak-anak Dedi & Sari
   {
     id: '8',
     name: 'Arif Wijaya',
@@ -141,7 +146,7 @@ export const mockFamilyData: FamilyMember[] = [
     education: 'S1 Kedokteran Gigi',
     gender: 'male',
     photoUrl: 'https://images.pexels.com/photos/1043474/pexels-photo-1043474.jpeg?auto=compress&cs=tinysrgb&w=150',
-    parentIds: ['5'],
+    parentIds: ['5', '4'], // Dedi & Sari sebagai orang tua
     siblingIds: ['9', '10', '11'],
     isAlive: true,
     generation: 3,
@@ -157,7 +162,7 @@ export const mockFamilyData: FamilyMember[] = [
     education: 'S1 Desain',
     gender: 'female',
     photoUrl: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150',
-    parentIds: ['5'],
+    parentIds: ['5', '4'], // Dedi & Sari sebagai orang tua
     siblingIds: ['8', '10', '11'],
     isAlive: true,
     generation: 3,
@@ -173,7 +178,7 @@ export const mockFamilyData: FamilyMember[] = [
     education: 'S1 Seni Rupa',
     gender: 'male',
     photoUrl: 'https://images.pexels.com/photos/1040880/pexels-photo-1040880.jpeg?auto=compress&cs=tinysrgb&w=150',
-    parentIds: ['5'],
+    parentIds: ['5', '4'], // Dedi & Sari sebagai orang tua
     siblingIds: ['8', '9', '11'],
     isAlive: true,
     generation: 3,
@@ -189,7 +194,7 @@ export const mockFamilyData: FamilyMember[] = [
     education: 'S1 Komunikasi',
     gender: 'female',
     photoUrl: 'https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg?auto=compress&cs=tinysrgb&w=150',
-    parentIds: ['5'],
+    parentIds: ['5', '4'], // Dedi & Sari sebagai orang tua
     siblingIds: ['8', '9', '10'],
     isAlive: true,
     generation: 3,

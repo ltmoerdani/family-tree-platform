@@ -1,7 +1,6 @@
 import React from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { useDashboardStore } from '../../store/dashboardStore';
-import { NewFamilyTreeCanvas } from './NewFamilyTreeCanvas';
 import App from '../../App';
 
 export const FamilyTreeRouter: React.FC = () => {
@@ -21,18 +20,7 @@ export const FamilyTreeRouter: React.FC = () => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // For the Wijaya family, show the existing family tree interface
-  if (treeId === 'wijaya-family') {
-    console.log('FamilyTreeRouter - showing existing App for wijaya-family');
-    return <App />;
-  }
-
-  // For new family trees, show the new canvas with empty state
-  console.log('FamilyTreeRouter - showing NewFamilyTreeCanvas for:', familyTree.name);
-  return (
-    <NewFamilyTreeCanvas
-      familyTreeName={familyTree.name}
-      onBackToDashboard={() => window.location.href = '/dashboard'}
-    />
-  );
+  // All family trees use the same App component for consistency
+  console.log('FamilyTreeRouter - showing App for:', familyTree.name);
+  return <App />;
 };

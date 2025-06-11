@@ -132,7 +132,16 @@ export const GridMemberCard: React.FC<GridMemberCardProps> = ({
         aria-label={getAriaLabel()}
         aria-pressed={isSelected}
       >
-        {/* Status Icons */}
+        {/* Generation Badge - Moved to top left corner */}
+        <div className="absolute -top-2 -left-2">
+          <div className={`w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center text-white shadow-sm ${
+            member.gender === 'male' ? 'bg-blue-500' : 'bg-pink-500'
+          }`}>
+            {member.generation}
+          </div>
+        </div>
+
+        {/* Status Icons - Keep in top right */}
         <div className="absolute -top-2 -right-2 flex space-x-1 z-10">
           {getStatusIcons()}
         </div>
@@ -159,25 +168,29 @@ export const GridMemberCard: React.FC<GridMemberCardProps> = ({
           </div>
         </div>
 
-        {/* Basic Info */}
+        {/* Basic Info - Updated layout like image */}
         <div className="px-4 pb-4 text-center">
+          {/* Nickname first (if exists) */}
+          {member.nickname && (
+            <p className="text-xs text-gray-500 mb-1 italic">
+              ({highlightText(member.nickname)})
+            </p>
+          )}
+          
+          {/* Full name */}
           <h3 className="font-bold text-gray-900 text-sm lg:text-base leading-tight mb-1">
             {highlightText(member.name)}
           </h3>
           
-          {member.nickname && (
-            <p className="text-xs text-gray-500 mb-1">
-              "{highlightText(member.nickname)}"
+          {/* Birth year and age */}
+          <div className="space-y-0.5 mb-2">
+            <p className="text-xs lg:text-sm text-gray-600">
+              {getYearDisplay()}
             </p>
-          )}
-          
-          <p className="text-xs lg:text-sm text-gray-600 mb-2">
-            {getYearDisplay()}
-          </p>
-          
-          <p className="text-xs text-gray-500 mb-2">
-            {calculateAge()} tahun
-          </p>
+            <p className="text-xs text-gray-500">
+              {calculateAge()} tahun
+            </p>
+          </div>
         </div>
 
         {/* Additional Info - Visible on Hover */}
@@ -204,14 +217,17 @@ export const GridMemberCard: React.FC<GridMemberCardProps> = ({
           </div>
         </div>
 
-        {/* Generation Badge */}
-        <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
-          <div className={`w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center text-white ${
-            member.gender === 'male' ? 'bg-blue-500' : 'bg-pink-500'
-          }`}>
-            {member.generation}
-          </div>
-        </div>
+        {/* Modals */}
+        <UnifiedMemberModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          editingMember={member}
+        />
+
+        <UnifiedMemberModal
+          isOpen={showAddChildModal}
+          onClose={() => setShowAddChildModal(false)}
+        />
       </button>
 
       {/* Context Menu */}
@@ -273,18 +289,6 @@ export const GridMemberCard: React.FC<GridMemberCardProps> = ({
           </div>
         </>
       )}
-
-      {/* Modals */}
-      <UnifiedMemberModal
-        isOpen={showEditModal}
-        onClose={() => setShowEditModal(false)}
-        editingMember={member}
-      />
-
-      <UnifiedMemberModal
-        isOpen={showAddChildModal}
-        onClose={() => setShowAddChildModal(false)}
-      />
     </>
   );
 };
