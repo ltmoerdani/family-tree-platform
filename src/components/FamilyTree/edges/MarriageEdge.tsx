@@ -25,19 +25,17 @@ export const MarriageEdge: React.FC<EdgeProps> = ({
   });
 
   return (
-    <>
-      <path
-        id={id}
-        style={{
-          ...style,
-          stroke: '#ef4444',
-          strokeWidth: 2,
-          fill: 'none',
-        }}
-        className="react-flow__edge-path"
-        d={edgePath}
-        markerEnd={markerEnd}
-      />
-    </>
+    <path
+      id={id}
+      style={{
+        ...style,
+        stroke: '#ef4444',
+        strokeWidth: 2,
+        fill: 'none',
+      }}
+      className="react-flow__edge-path"
+      d={edgePath}
+      markerEnd={markerEnd}
+    />
   );
 };

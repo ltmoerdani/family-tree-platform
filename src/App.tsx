@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { ProtectedRoute } from './components/Auth/ProtectedRoute';
 import { Dashboard } from './components/Dashboard/Dashboard';
 import { UpgradePage } from './components/Upgrade/UpgradePage';
@@ -13,97 +13,128 @@ import { useFamilyStore } from './store/familyStore';
 import { useDashboardStore } from './store/dashboardStore';
 import { useAuthStore } from './store/authStore';
 import { mockFamilyData } from './data/mockData';
+import { FamilyTree, FamilyTreeNavigationState, NavigationHandlers, AppView, ViewNavigationResult } from './types/dashboard';
+
+/**
+ * Utility function to handle family tree navigation logic
+ * Reduces code duplication and follows Single Responsibility Principle
+ * @param treeId - ID of the family tree to navigate to
+ * @param familyTrees - Array of available family trees
+ * @param setMembers - Function to set family members
+ * @returns Navigation state or null if tree not found
+ */
+const handleFamilyTreeNavigation = (
+  treeId: string, 
+  familyTrees: FamilyTree[], 
+  setMembers: NavigationHandlers['setMembers']
+): FamilyTreeNavigationState | null => {
+  const familyTree = familyTrees.find(tree => tree.id === treeId);
+  
+  if (!familyTree) {
+    return null; // Caller should handle redirect to dashboard
+  }
+  
+  // Load appropriate data based on family tree
+  if (treeId === 'wijaya-family') {
+    // Load existing mock data for Wijaya family
+    setMembers(mockFamilyData);
+  } else {
+    // For new family trees, start with empty members array
+    setMembers([]);
+  }
+  
+  return {
+    treeId,
+    familyTree,
+    currentFamilyTreeName: familyTree.name
+  };
+};
+
+/**
+ * Utility function to handle URL path routing
+ * Centralizes routing logic for better maintainability
+ * @param path - URL path to parse
+ * @returns Object containing view type and optional tree ID
+ */
+const getViewFromPath = (path: string): ViewNavigationResult => {
+  if (path === '/' || path === '') {
+    return { view: 'dashboard' };
+  } else if (path.startsWith('/family-tree/')) {
+    const treeId = path.split('/family-tree/')[1];
+    return { view: 'family-tree', treeId };
+  } else if (path === '/upgrade') {
+    return { view: 'upgrade' };
+  } else if (path === '/dashboard') {
+    return { view: 'dashboard' };
+  } else {
+    return { view: 'dashboard' }; // Default fallback
+  }
+};
 
 function App() {
   const { setMembers, selectedMember } = useFamilyStore();
   const { familyTrees } = useDashboardStore();
   useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'family-tree' | 'upgrade'>('dashboard');
+  const [currentView, setCurrentView] = useState<AppView>('dashboard');
   const [currentFamilyTreeName, setCurrentFamilyTreeName] = useState<string>('');
 
   console.log('App render - currentView:', currentView);
   console.log('App render - familyTrees:', familyTrees.length);
 
-  useEffect(() => {
-    // Check URL to determine current view
-    const path = window.location.pathname;
-    console.log('App loading with path:', path);
+  /**
+   * Handles view switching with proper navigation and data loading
+   * Extracted to reduce code duplication
+   */
+  const switchToView = useCallback((path: string) => {
+    const { view, treeId } = getViewFromPath(path);
     
-    if (path === '/' || path === '') {
-      // Default to dashboard for root URL
-      window.history.replaceState({}, '', '/dashboard');
-      setCurrentView('dashboard');
-    } else if (path.startsWith('/family-tree/')) {
-      const treeId = path.split('/family-tree/')[1];
-      const familyTree = familyTrees.find(tree => tree.id === treeId);
+    if (view === 'family-tree' && treeId) {
+      const navigationResult = handleFamilyTreeNavigation(treeId, familyTrees, setMembers);
       
-      if (!familyTree) {
+      if (!navigationResult) {
         // Family tree not found, redirect to dashboard
         window.history.pushState({}, '', '/dashboard');
         setCurrentView('dashboard');
         return;
       }
       
-      setCurrentFamilyTreeName(familyTree.name);
+      setCurrentFamilyTreeName(navigationResult.currentFamilyTreeName);
       setCurrentView('family-tree');
-      
-      // Load appropriate data based on family tree
-      if (treeId === 'wijaya-family') {
-        // Load existing mock data for Wijaya family
-        setMembers(mockFamilyData);
-      } else {
-        // For new family trees, start with empty members array
-        // TreeCanvas will handle empty state properly
-        setMembers([]);
-      }
-    } else if (path === '/upgrade') {
-      setCurrentView('upgrade');
-    } else if (path === '/dashboard') {
-      setCurrentView('dashboard');
     } else {
-      // Unknown path, redirect to dashboard
-      window.history.replaceState({}, '', '/dashboard');
-      setCurrentView('dashboard');
+      setCurrentView(view);
+      if (view === 'dashboard') {
+        setCurrentFamilyTreeName('');
+      }
     }
-  }, [setMembers, familyTrees]);
+  }, [familyTrees, setMembers]);
 
-  const handleMenuToggle = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
+  // Initial URL handling
+  useEffect(() => {
+    const path = window.location.pathname;
+    console.log('App loading with path:', path);
+    
+    if (path === '/' || path === '') {
+      window.history.replaceState({}, '', '/dashboard');
+    }
+    
+    switchToView(path);
+  }, [switchToView]);
 
-  // Handle navigation
+  // Handle navigation events
   useEffect(() => {
     const handlePopState = () => {
       const path = window.location.pathname;
-      if (path.startsWith('/family-tree/')) {
-        const treeId = path.split('/family-tree/')[1];
-        const familyTree = familyTrees.find(tree => tree.id === treeId);
-        
-        if (!familyTree) {
-          setCurrentView('dashboard');
-          return;
-        }
-        
-        setCurrentFamilyTreeName(familyTree.name);
-        setCurrentView('family-tree');
-        
-        // Load data consistently
-        if (treeId === 'wijaya-family') {
-          setMembers(mockFamilyData);
-        } else {
-          setMembers([]);
-        }
-      } else if (path === '/upgrade') {
-        setCurrentView('upgrade');
-      } else {
-        setCurrentView('dashboard');
-      }
+      switchToView(path);
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [setMembers, familyTrees]);
+  }, [switchToView]);
+
+  const handleMenuToggle = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
 
   return (
     <ProtectedRoute>

@@ -1,9 +1,7 @@
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import ReactFlow, {
   Node,
- /**
- * Converts family members to React Flow nodes
- */dge,
+  Edge,
   useNodesState,
   useEdgesState,
   Controls,
@@ -100,16 +98,6 @@ const getLayoutedElements = (
   });
 
   return { nodes: layoutedNodes, edges };
-};
-
-/**
- * Converts family members to React Flow nodes with tier-based positioning
- */
-const getTierLayoutedElements = (
-  nodes: Node[]
-): { nodes: Node[]; edges: Edge[]; tiers: TierLayout[] } => {
-  const { layoutedNodes, tiers } = calculateTierLayout(nodes);
-  return { nodes: layoutedNodes, edges: [], tiers };
 };
 
 /**
