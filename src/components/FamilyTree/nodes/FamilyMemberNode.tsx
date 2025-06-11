@@ -100,24 +100,28 @@ export const FamilyMemberNode = memo<NodeProps<FamilyMemberNodeData>>(({ data, s
       <Handle
         type="target"
         position={Position.Top}
+        id="top"
         className="w-4 h-4 bg-gray-400 border-2 border-white"
         style={{ top: -8 }}
       />
       <Handle
         type="source"
         position={Position.Bottom}
+        id="bottom"
         className="w-4 h-4 bg-gray-400 border-2 border-white"
         style={{ bottom: -8 }}
       />
       <Handle
         type="target"
         position={Position.Left}
+        id="left"
         className="w-4 h-4 bg-gray-400 border-2 border-white"
         style={{ left: -8 }}
       />
       <Handle
         type="source"
         position={Position.Right}
+        id="right"
         className="w-4 h-4 bg-gray-400 border-2 border-white"
         style={{ right: -8 }}
       />

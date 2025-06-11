@@ -28,6 +28,7 @@ import { SiblingEdge } from './edges/SiblingEdge';
 import { ExportControls } from './controls/ExportControls';
 import { FamilyTreeControls } from './controls/FamilyTreeControls';
 import { MemberEditModal } from './modals/MemberEditModal';
+import { calculateTierLayout, constrainNodeMovement, TierLayout } from './utils/tierLayoutManager';
 
 // Define custom node and edge types
 const nodeTypes: NodeTypes = {
@@ -123,12 +124,13 @@ const convertMembersToNodes = (members: FamilyMember[]): Node[] => {
 /**
  * Creates edges between family members based on relationships
  * Uses simple React Flow edges without complex bracket styling
+ * Supports different handle positions for tier mode vs free layout
  */
-const createFamilyEdges = (members: FamilyMember[]): Edge[] => {
+const createFamilyEdges = (members: FamilyMember[], isTierMode: boolean = false): Edge[] => {
   const edges: Edge[] = [];
 
   members.forEach((member) => {
-    // Create simple spouse connections 
+    // Create spouse connections with appropriate handles for tier mode
     if (member.spouseId) {
       const spouse = members.find(m => m.id === member.spouseId);
       if (spouse && member.id < spouse.id) {
@@ -137,12 +139,16 @@ const createFamilyEdges = (members: FamilyMember[]): Edge[] => {
           source: member.id,
           target: spouse.id,
           type: 'marriage',
+          // In tier mode, use horizontal handles (left/right)
+          // In free layout, use vertical handles (top/bottom) 
+          sourceHandle: isTierMode ? 'right' : 'bottom',
+          targetHandle: isTierMode ? 'left' : 'top',
           data: { relationship: 'spouse' },
         });
       }
     }
 
-    // Create simple parent-child edges
+    // Create parent-child edges (always vertical regardless of mode)
     if (member.parentIds && member.parentIds.length > 0) {
       member.parentIds.forEach((parentId) => {
         edges.push({
@@ -150,6 +156,8 @@ const createFamilyEdges = (members: FamilyMember[]): Edge[] => {
           source: parentId,
           target: member.id,
           type: 'parentChild',
+          sourceHandle: 'bottom',
+          targetHandle: 'top',
           data: { relationship: 'parentChild' },
         });
       });
@@ -174,11 +182,13 @@ const ReactFlowFamilyTreeInner: React.FC<ReactFlowFamilyTreeProps> = ({
   const [layoutDirection, setLayoutDirection] = useState<'TB' | 'LR'>('TB');
   const [gridType, setGridType] = useState<GridPatternType>('lines');
   const [showGrid, setShowGrid] = useState(true);
+  const [tierLayouts, setTierLayouts] = useState<TierLayout[]>([]);
 
   // Convert members to nodes and edges
   const { initialNodes, initialEdges } = useMemo(() => {
     const rawNodes = convertMembersToNodes(members);
-    const rawEdges = createFamilyEdges(members);
+    const isTierMode = layoutDirection === 'TB';
+    const rawEdges = createFamilyEdges(members, isTierMode);
     
     // Add event handlers to node data
     const nodesWithHandlers = rawNodes.map(node => ({
@@ -212,28 +222,57 @@ const ReactFlowFamilyTreeInner: React.FC<ReactFlowFamilyTreeProps> = ({
       initialNodes: nodesWithHandlers,
       initialEdges: rawEdges,
     };
-  }, [members, onMemberAdd, onMemberDelete]);
+  }, [members, onMemberAdd, onMemberDelete, layoutDirection]);
 
-  // Apply standard layout when members change
+  // Apply layout when members change
   useEffect(() => {
-    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-      initialNodes,
-      initialEdges,
-      layoutDirection
-    );
-
-    setNodes(layoutedNodes);
-    setEdges(layoutedEdges);
+    if (layoutDirection === 'TB') {
+      // Use tier layout for tier mode
+      const { layoutedNodes, tiers } = calculateTierLayout(initialNodes);
+      setNodes(layoutedNodes);
+      setEdges(initialEdges);
+      setTierLayouts(tiers);
+    } else {
+      // Use dagre layout for free layout
+      const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
+        initialNodes,
+        initialEdges,
+        layoutDirection
+      );
+      setNodes(layoutedNodes);
+      setEdges(layoutedEdges);
+      setTierLayouts([]);
+    }
 
     setTimeout(() => {
       fitView({ padding: 0.2 });
     }, 100);
   }, [initialNodes, initialEdges, layoutDirection, setNodes, setEdges, fitView]);
 
-  // Standard node change handler
+  // Tier-aware node change handler
   const handleNodesChange = useCallback((changes: NodeChange[]) => {
-    onNodesChange(changes);
-  }, [onNodesChange]);
+    if (layoutDirection === 'TB') {
+      // In tier mode, constrain movement to horizontal only
+      const constrainedChanges = changes.map(change => {
+        if (change.type === 'position' && change.position) {
+          const constrainedPosition = constrainNodeMovement(
+            change.id,
+            change.position,
+            tierLayouts
+          );
+          return {
+            ...change,
+            position: constrainedPosition
+          };
+        }
+        return change;
+      });
+      onNodesChange(constrainedChanges);
+    } else {
+      // In free mode, allow normal movement
+      onNodesChange(changes);
+    }
+  }, [onNodesChange, layoutDirection, tierLayouts]);
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
@@ -245,14 +284,22 @@ const ReactFlowFamilyTreeInner: React.FC<ReactFlowFamilyTreeProps> = ({
   }, []);
 
   const handleAutoLayout = useCallback(() => {
-    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-      getNodes(),
-      getEdges(),
-      layoutDirection
-    );
-
-    setNodes(layoutedNodes);
-    setEdges(layoutedEdges);
+    if (layoutDirection === 'TB') {
+      // Use tier layout for tier mode
+      const { layoutedNodes, tiers } = calculateTierLayout(getNodes());
+      setNodes(layoutedNodes);
+      setTierLayouts(tiers);
+    } else {
+      // Use dagre layout for free layout
+      const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
+        getNodes(),
+        getEdges(),
+        layoutDirection
+      );
+      setNodes(layoutedNodes);
+      setEdges(layoutedEdges);
+      setTierLayouts([]);
+    }
 
     setTimeout(() => {
       fitView({ padding: 0.2 });
@@ -310,8 +357,8 @@ const ReactFlowFamilyTreeInner: React.FC<ReactFlowFamilyTreeProps> = ({
         minZoom={0.1}
         maxZoom={2}
         defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
-        snapToGrid={true}
-        snapGrid={[25, 25]}
+        snapToGrid={layoutDirection === 'TB'}
+        snapGrid={layoutDirection === 'TB' ? [25, 50] : [25, 25]}
         proOptions={{
           hideAttribution: true
         }}
