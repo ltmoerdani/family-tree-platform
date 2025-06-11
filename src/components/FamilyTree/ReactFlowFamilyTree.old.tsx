@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import ReactFlow, {
   Node,
-  Edge,
-  addEdge,
+ /**
+ * Converts family members to React Flow nodes
+ */dge,
   useNodesState,
   useEdgesState,
   Controls,
@@ -45,7 +46,7 @@ const dagreGraph = new dagre.graphlib.Graph();
 dagreGraph.setDefaultEdgeLabel(() => ({}));
 
 const nodeWidth = 200;
-const nodeHeight = 120;
+const nodeHeight = 120; // Standard height for React Flow nodes
 
 interface ReactFlowFamilyTreeProps {
   members: FamilyMember[];
@@ -67,8 +68,8 @@ const getLayoutedElements = (
   // Configure dagre for standard React Flow layout
   dagreGraph.setGraph({ 
     rankdir: direction,
-    nodesep: 100,
-    ranksep: 200,
+    nodesep: 100, // Standard spacing between nodes
+    ranksep: 200, // Standard spacing between generations
     marginx: 50,
     marginy: 50,
   });
@@ -102,19 +103,37 @@ const getLayoutedElements = (
 };
 
 /**
+ * Converts family members to React Flow nodes with tier-based positioning
+ */
+const getTierLayoutedElements = (
+  nodes: Node[]
+): { nodes: Node[]; edges: Edge[]; tiers: TierLayout[] } => {
+  const { layoutedNodes, tiers } = calculateTierLayout(nodes);
+  return { nodes: layoutedNodes, edges: [], tiers };
+};
+
+/**
  * Converts family members to React Flow nodes
  */
 const convertMembersToNodes = (members: FamilyMember[]): Node[] => {
   return members.map((member) => ({
     id: member.id,
     type: 'familyMember',
-    position: { x: 0, y: 0 },
+    position: { x: 0, y: 0 }, // Will be set by layout algorithm
     data: {
       member,
-      onEdit: () => {},
-      onDelete: () => {},
-      onAddChild: () => {},
-      onAddSpouse: () => {},
+      onEdit: () => {
+        // Handle edit - will be passed from parent
+      },
+      onDelete: () => {
+        // Handle delete - will be passed from parent
+      },
+      onAddChild: () => {
+        // Handle add child - will be passed from parent
+      },
+      onAddSpouse: () => {
+        // Handle add spouse - will be passed from parent
+      },
     },
     draggable: true,
   }));
@@ -131,7 +150,7 @@ const createFamilyEdges = (members: FamilyMember[]): Edge[] => {
     // Create simple spouse connections 
     if (member.spouseId) {
       const spouse = members.find(m => m.id === member.spouseId);
-      if (spouse && member.id < spouse.id) {
+      if (spouse && member.id < spouse.id) { // Avoid duplicate edges
         edges.push({
           id: `spouse-${member.id}-${spouse.id}`,
           source: member.id,
@@ -216,6 +235,7 @@ const ReactFlowFamilyTreeInner: React.FC<ReactFlowFamilyTreeProps> = ({
 
   // Apply standard layout when members change
   useEffect(() => {
+    // Use dagre layout for both vertical and horizontal arrangement
     const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
       initialNodes,
       initialEdges,
@@ -245,6 +265,7 @@ const ReactFlowFamilyTreeInner: React.FC<ReactFlowFamilyTreeProps> = ({
   }, []);
 
   const handleAutoLayout = useCallback(() => {
+    // Use dagre layout for both vertical and horizontal arrangement
     const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
       getNodes(),
       getEdges(),
@@ -263,10 +284,16 @@ const ReactFlowFamilyTreeInner: React.FC<ReactFlowFamilyTreeProps> = ({
     fitView({ padding: 0.2, duration: 800 });
   }, [fitView]);
 
+  /**
+   * Safely converts grid pattern type to BackgroundVariant
+   * @param pattern - The grid pattern type
+   * @returns Valid BackgroundVariant
+   */
   const convertToBackgroundVariant = (pattern: GridPatternType): BackgroundVariant => {
     return pattern as BackgroundVariant;
   };
 
+  // Helper function to get background color for grid
   const getGridBackgroundColor = (variant: BackgroundVariant): string => {
     switch (variant) {
       case 'dots':
@@ -278,11 +305,13 @@ const ReactFlowFamilyTreeInner: React.FC<ReactFlowFamilyTreeProps> = ({
     }
   };
 
+  // Helper function to get background gap
   const getGridGap = (variant: BackgroundVariant): number => {
     const baseGap = variant === 'lines' ? 25 : 30;
     return baseGap;
   };
 
+  // Helper function to get background size
   const getGridSize = (variant: BackgroundVariant): number => {
     switch (variant) {
       case 'dots':
@@ -305,17 +334,18 @@ const ReactFlowFamilyTreeInner: React.FC<ReactFlowFamilyTreeProps> = ({
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         fitView
-        attributionPosition={undefined}
+        attributionPosition={undefined} // Remove React Flow attribution
         className="bg-gray-50"
         minZoom={0.1}
         maxZoom={2}
         defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
-        snapToGrid={true}
-        snapGrid={[25, 25]}
+        snapToGrid={layoutDirection === 'TB'}
+        snapGrid={[25, 50]}
         proOptions={{
-          hideAttribution: true
+          hideAttribution: true // Hide React Flow attribution if using Pro
         }}
       >
+        {/* Enhanced Background with softer grid pattern */}
         {showGrid && (
           <Background 
             variant={convertToBackgroundVariant(gridType)}
@@ -329,6 +359,7 @@ const ReactFlowFamilyTreeInner: React.FC<ReactFlowFamilyTreeProps> = ({
           />
         )}
         
+        {/* Major grid lines - much softer with adjusted spacing */}
         {showGrid && gridType === 'lines' && (
           <Background 
             variant={convertToBackgroundVariant('lines')}
@@ -342,12 +373,14 @@ const ReactFlowFamilyTreeInner: React.FC<ReactFlowFamilyTreeProps> = ({
           />
         )}
 
+        {/* Controls for zoom, fit view, etc. */}
         <Controls 
           position="bottom-right"
           showInteractive={false}
           className="bg-white border border-gray-300 rounded-lg shadow-lg"
         />
 
+        {/* Minimap for navigation */}
         <MiniMap
           position="bottom-left"
           className="bg-white border border-gray-300 rounded-lg shadow-lg"
@@ -361,6 +394,7 @@ const ReactFlowFamilyTreeInner: React.FC<ReactFlowFamilyTreeProps> = ({
           zoomable
         />
 
+        {/* Custom control panels */}
         <Panel position="top-left" className="space-y-2">
           <FamilyTreeControls
             onLayoutChange={handleLayoutChange}
@@ -381,6 +415,7 @@ const ReactFlowFamilyTreeInner: React.FC<ReactFlowFamilyTreeProps> = ({
         </Panel>
       </ReactFlow>
 
+      {/* Edit Member Modal */}
       {editingMember && (
         <MemberEditModal
           member={editingMember}

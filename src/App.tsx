@@ -22,11 +22,19 @@ function App() {
   const [currentView, setCurrentView] = useState<'dashboard' | 'family-tree' | 'upgrade'>('dashboard');
   const [currentFamilyTreeName, setCurrentFamilyTreeName] = useState<string>('');
 
+  console.log('App render - currentView:', currentView);
+  console.log('App render - familyTrees:', familyTrees.length);
+
   useEffect(() => {
     // Check URL to determine current view
     const path = window.location.pathname;
+    console.log('App loading with path:', path);
     
-    if (path.startsWith('/family-tree/')) {
+    if (path === '/' || path === '') {
+      // Default to dashboard for root URL
+      window.history.replaceState({}, '', '/dashboard');
+      setCurrentView('dashboard');
+    } else if (path.startsWith('/family-tree/')) {
       const treeId = path.split('/family-tree/')[1];
       const familyTree = familyTrees.find(tree => tree.id === treeId);
       
@@ -51,7 +59,11 @@ function App() {
       }
     } else if (path === '/upgrade') {
       setCurrentView('upgrade');
+    } else if (path === '/dashboard') {
+      setCurrentView('dashboard');
     } else {
+      // Unknown path, redirect to dashboard
+      window.history.replaceState({}, '', '/dashboard');
       setCurrentView('dashboard');
     }
   }, [setMembers, familyTrees]);
@@ -95,41 +107,43 @@ function App() {
 
   return (
     <ProtectedRoute>
-      {currentView === 'dashboard' && <Dashboard />}
-      {currentView === 'upgrade' && <UpgradePage />}
-      {currentView === 'family-tree' && (
-        <div className="h-screen flex flex-col bg-gray-50">
-          {/* Header with consistent family name display */}
-          <Header onMenuToggle={handleMenuToggle} familyName={currentFamilyTreeName} />
-          
-          {/* Toolbar */}
-          <Toolbar 
-            onBackToDashboard={() => {
-              window.history.pushState({}, '', '/dashboard');
-              setCurrentView('dashboard');
-            }}
-          />
-          
-          {/* Main Content */}
-          <div className="flex flex-1 overflow-hidden">
-            {/* Left Sidebar - Stats */}
-            <div className={`${sidebarOpen ? 'block' : 'hidden'} lg:block`}>
-              <StatsSidebar />
+      <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
+        {currentView === 'dashboard' && <Dashboard />}
+        {currentView === 'upgrade' && <UpgradePage />}
+        {currentView === 'family-tree' && (
+          <div className="h-screen flex flex-col bg-gray-50">
+            {/* Header with consistent family name display */}
+            <Header onMenuToggle={handleMenuToggle} familyName={currentFamilyTreeName} />
+            
+            {/* Toolbar */}
+            <Toolbar 
+              onBackToDashboard={() => {
+                window.history.pushState({}, '', '/dashboard');
+                setCurrentView('dashboard');
+              }}
+            />
+            
+            {/* Main Content */}
+            <div className="flex flex-1 overflow-hidden">
+              {/* Left Sidebar - Stats */}
+              <div className={`${sidebarOpen ? 'block' : 'hidden'} lg:block`}>
+                <StatsSidebar />
+              </div>
+              
+              {/* Main Canvas Area - Always use FamilyTreeView for consistency */}
+              <div className="flex-1 flex flex-col">
+                <FamilyTreeView />
+              </div>
+              
+              {/* Right Sidebar - Member Details */}
+              {selectedMember && <MemberDetailSidebar />}
             </div>
             
-            {/* Main Canvas Area - Always use FamilyTreeView for consistency */}
-            <div className="flex-1 flex flex-col">
-              <FamilyTreeView />
-            </div>
-            
-            {/* Right Sidebar - Member Details */}
-            {selectedMember && <MemberDetailSidebar />}
+            {/* Bottom Navigation */}
+            <BottomNavigation />
           </div>
-          
-          {/* Bottom Navigation */}
-          <BottomNavigation />
-        </div>
-      )}
+        )}
+      </div>
     </ProtectedRoute>
   );
 }

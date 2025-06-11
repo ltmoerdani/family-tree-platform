@@ -45,8 +45,15 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
-      user: null,
-      isAuthenticated: false,
+      user: {
+        id: '1',
+        email: 'demo@familytree.com',
+        name: 'Demo User',
+        familyName: 'Wijaya',
+        avatar: 'https://images.pexels.com/photos/1040880/pexels-photo-1040880.jpeg?auto=compress&cs=tinysrgb&w=150',
+        createdAt: '2024-01-01T00:00:00Z'
+      },
+      isAuthenticated: true,
       isLoading: false,
       error: null,
 

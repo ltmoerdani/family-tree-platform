@@ -1,9 +1,9 @@
 import React from 'react';
-import { EdgeProps } from 'reactflow';
+import { EdgeProps, getSmoothStepPath } from 'reactflow';
 
 /**
- * SiblingEdge component renders a bracket-style connection between siblings
- * Uses dashed lines to distinguish from parent-child relationships
+ * SiblingEdge component renders a simple smooth step connection between siblings
+ * Uses React Flow's built-in getSmoothStepPath with dashed lines
  *
  * @param props - EdgeProps containing connection coordinates and styling
  * @returns JSX element representing the sibling connection
@@ -16,22 +16,14 @@ export const SiblingEdge: React.FC<EdgeProps> = ({
   targetY,
   style = {},
 }) => {
-  /**
-   * Creates a bracket-style path for sibling connections
-   * Connects siblings with a horizontal line above both nodes
-   *
-   * @returns SVG path string for the sibling bracket
-   */
-  const createSiblingPath = (): string => {
-    const midY = Math.min(sourceY, targetY) - 30; // Above both nodes
-
-    return `
-      M ${sourceX} ${sourceY}
-      L ${sourceX} ${midY}
-      L ${targetX} ${midY}
-      L ${targetX} ${targetY}
-    `;
-  };
+  const [edgePath] = getSmoothStepPath({
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+    sourcePosition: 'right',
+    targetPosition: 'left',
+  });
 
   return (
     <path
@@ -44,7 +36,7 @@ export const SiblingEdge: React.FC<EdgeProps> = ({
         fill: 'none',
       }}
       className="react-flow__edge-path"
-      d={createSiblingPath()}
+      d={edgePath}
       strokeLinecap="round"
     />
   );

@@ -3,7 +3,6 @@ import { useRef, useState, useCallback, useEffect } from 'react';
 import { flushSync } from 'react-dom';
 import { EditableMemberCard } from './EditableMemberCard';
 import { MemberCard } from './MemberCard';
-import { FamilyTreeConnections } from './FamilyTreeConnections.tsx';
 import { useFamilyStore } from '../../store/familyStore';
 import { FamilyMember } from '../../types/family';
 
@@ -496,14 +495,6 @@ export const TreeCanvas: React.FC = () => {
             willChange: 'transform',
           }}
         >
-          {/* Family Tree Connections */}
-          <FamilyTreeConnections
-            members={filteredMembers}
-            positions={memberPositions}
-            canvasWidth={canvasDimensions.width}
-            canvasHeight={canvasDimensions.height}
-          />
-
           {/* Render Member Cards */}
           <div style={{ position: 'relative', zIndex: 10 }} className="pointer-events-auto">
             {filteredMembers.map(member => {
